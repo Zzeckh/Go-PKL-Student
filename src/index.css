@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&display=swap');
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-white: var(--theme-white);
+  --color-black: var(--theme-black);
+  --color-navy: var(--theme-navy);
+  --color-steel: var(--theme-steel);
+  --color-mist: var(--theme-mist);
+  --color-shell: var(--theme-shell);
+}
+
+@layer base {
+  :root {
+    --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --theme-white: #ffffff;
+    --theme-black: #000000;
+    --theme-navy: #152A42;
+    --theme-steel: #152A42;
+    --theme-mist: #DADEE8;
+    --theme-shell: #F2F1EF;
+  }
+
+  .dark {
+    --theme-white: #121212;
+    --theme-black: #ffffff;
+    --theme-navy: #F5F5F5;
+    --theme-steel: #ffffff;
+    --theme-mist: #3D3D3D;
+    --theme-shell: #1C1C1C;
+  }
+
+  html, body { overflow-x: clip; }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--theme-shell);
+    color: var(--theme-black);
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--theme-black) 14%, transparent);
+  border-radius: 9999px;
+}
