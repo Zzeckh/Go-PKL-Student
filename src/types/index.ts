@@ -20,7 +20,7 @@ export type ActivePage =
   | 'laporan';
 
 export type AuthMode = 'login' | 'register';
-export type UserRole = 'intern' | 'mentor' | 'teacher' | 'hubin' | 'super_admin'; // ← TAMBAH super_admin
+export type UserRole = 'student' | 'mentor' | 'teacher' | 'hubin' | 'super_admin';
 
 export interface LogEntry {
   id: string;

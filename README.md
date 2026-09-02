@@ -8,7 +8,7 @@ Vite + React + TypeScript + Tailwind CSS v4
 
 ## Progress
 - [x] Scaffold & design tokens
-- [ ] Login & auth
+- [x] Login & auth
 - [ ] Bottom navigation
 - [ ] Absensi GPS
 - [ ] Logbook

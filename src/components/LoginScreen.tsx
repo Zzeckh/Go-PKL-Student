@@ -37,9 +37,9 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
       const user = data?.user || data;
       if (!token) throw new Error('Respons login tidak valid.');
 
-      /* App ini khusus siswa */
-      if (user?.role && user.role !== 'intern') {
-        throw new Error('Aplikasi ini khusus role siswa. Role lain silakan pakai aplikasi web.');
+      /* App ini khusus siswa — backend uses role 'student' */
+      if (user?.role && user.role !== 'student') {
+        throw new Error('Aplikasi ini khusus siswa. Role lain silakan pakai aplikasi web.');
       }
 
       setToken(token, remember);
