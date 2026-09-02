@@ -49,3 +49,24 @@
   background: color-mix(in srgb, var(--theme-black) 14%, transparent);
   border-radius: 9999px;
 }
+
+/* ─── Lingkaran topographic "bernafas" & mengambang ───
+   Tiap blob bergerak围绕 pusatnya sendiri dengan durasi beda
+   biar terasa organik, bukan seragam. */
+@keyframes blob-float {
+  from { transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+  to   { transform: translate3d(8px, -10px, 0) scale(1.12) rotate(2deg); }
+}
+
+.topo-anim,
+.topo-anim-rev,
+.topo-anim-slow,
+.topo-anim-rev-slow {
+  transform-box: fill-box;      /* skala & rotasi围绕 pusat blob sendiri */
+  transform-origin: center;
+}
+
+.topo-anim          { animation: blob-float 9s  ease-in-out infinite alternate; }
+.topo-anim-rev      { animation: blob-float 12s ease-in-out infinite alternate-reverse; }
+.topo-anim-slow     { animation: blob-float 14s ease-in-out infinite alternate; }
+.topo-anim-rev-slow { animation: blob-float 11s ease-in-out infinite alternate-reverse; }
