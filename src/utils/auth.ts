@@ -1,4 +1,5 @@
-export const TOKEN_KEY = 'gopkl_token';
+/* ✅ Key token SAMA dengan aplikasi web & api.ts */
+export const TOKEN_KEY = 'pkl_token';
 export const USER_KEY = 'gopkl_user';
 
 export const getToken = (): string | null =>

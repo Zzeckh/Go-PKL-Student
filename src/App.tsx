@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { LogOut } from 'lucide-react';
-import { LoginScreen } from './components/LoginScreen';
-import { readUser, clearAuth } from './utils/auth';
+import { LoginScreen } from './components/LoginScreen.tsx';
+import { readUser, clearAuth } from './utils/auth.ts';
 
 export default function App() {
   const [user, setUser] = useState<any>(() => readUser());
