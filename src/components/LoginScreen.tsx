@@ -242,7 +242,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
       <div className="p-6 pt-0">
         <button
           onClick={() => goTo('login')}
-          className="w-full bg-white text-navy rounded-full py-4 text-sm font-extrabold shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          className="w-full bg-white text-navy rounded-full py-4 text-sm font-extrabold shadow-md shadow-black/20 border-0 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
         >
           Masuk <ArrowRight className="w-4 h-4" />
         </button>
@@ -349,7 +349,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
   return (
     <div className="relative min-h-screen bg-white overflow-hidden">
 
-      {/* ═══ LAPISAN FLUID ═══ */}
+      {/* ═══ LAPISAN FLUID ═══
+          persis 2 SVG wave, overlap 8px ke dalam fluid (seam-proof) */}
       <div
         className="absolute inset-x-0 z-0 bg-navy transition-all duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
         style={{ top: FLUID_POS[stage].top, bottom: FLUID_POS[stage].bottom }}
@@ -358,18 +359,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
           <TopoPattern />
         </div>
 
-        {/* wave tepi ATAS fluid */}
+        {/* wave tepi ATAS fluid (kelihatan saat fluid di bawah / loading) */}
         <svg
-          className="block absolute left-0 w-full h-[90px] bottom-[calc(100%-4px)]"
+          className="block absolute left-0 w-full h-[90px] bottom-[calc(100%-8px)]"
           viewBox="0 0 1440 190"
           preserveAspectRatio="none"
         >
           <path d={WAVE_BOTTOM_FILL} fill="var(--theme-navy)" />
         </svg>
 
-        {/* wave tepi BAWAH fluid */}
+        {/* wave tepi BAWAH fluid (kelihatan saat fluid di atas / login) */}
         <svg
-          className="block absolute left-0 w-full h-[90px] top-[calc(100%-4px)]"
+          className="block absolute left-0 w-full h-[90px] top-[calc(100%-8px)]"
           viewBox="0 0 1440 190"
           preserveAspectRatio="none"
         >
@@ -411,15 +412,21 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
         </div>
       )}
 
-      {/* ═══ LAYAR LAMA: fade-out (crossfade) ═══ */}
-      {prevStage && prevStage !== stage && (
+      {/* ═══ LAYAR LAMA: fade-out (crossfade) ═══
+          khusus dari login: form langsung lenyap (tanpa exit overlay) */}
+      {prevStage && prevStage !== stage && prevStage !== 'login' && (
         <div key={`exit-${prevStage}`} className="absolute inset-0 z-10 pointer-events-none stage-exit">
           {VIEWS[prevStage]}
         </div>
       )}
 
-      {/* ═══ LAYAR BARU: fade-in ═══ */}
-      <div key={`enter-${stage}`} className="absolute inset-0 z-10 stage-enter">
+      {/* ═══ LAYAR BARU: fade-in ═══
+          khusus login: form muncul SETELAH animasi fluid beres (900ms) */}
+      <div
+        key={`enter-${stage}`}
+        className="absolute inset-0 z-10 stage-enter"
+        style={{ animationDelay: stage === 'login' ? '900ms' : '0ms' }}
+      >
         {VIEWS[stage]}
       </div>
     </div>
