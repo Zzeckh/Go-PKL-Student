@@ -149,9 +149,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
         </svg>
       </div>
 
-      {/* ═══ HEADER PERSISTEN (start ↔ login) ═══
-          - Logo meluncur kiri → kanan
-          - Nama morph menjadi tombol Kembali yang TETAP di kiri */}
+      {/* ═══ HEADER PERSISTEN (start ↔ login) ═══ */}
       {(stage === 'start' || stage === 'login') && (
         <div className="absolute inset-x-0 top-0 z-20 h-[92px] pointer-events-none header-in">
 
@@ -160,7 +158,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
             className="absolute top-6 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
             style={{ left: stage === 'login' ? 'calc(100% - 68px)' : '24px' }}
           >
-            <Logo onDark className="w-11 h-11 drop-shadow-md" />
+            <Logo className="w-11 h-11 drop-shadow-md" />
           </div>
 
           {/* slot KIRI: nama ↔ tombol kembali (morph di tempat) */}
@@ -190,13 +188,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
         </div>
       )}
 
-      {/* ═══ STAGE: SPLASH (1,5 dtk) ═══ */}
+      {/* ═══ STAGE: SPLASH (1,5 dtk) ═══
+          Lingkaran putih dihapus — logo tampil penuh sebesar
+          lingkaran itu dulu (w-36 h-36 = 144px) */}
       {stage === 'splash' && (
         <div key="splash" className="absolute inset-0 z-10 flex flex-col items-center justify-center rise-in">
-          <div className="relative">
-            <div className="absolute inset-0 rounded-full bg-white/10 scale-[1.5]" />
-            <Logo onDark className="relative w-24 h-24 drop-shadow-lg" />
-          </div>
+          <Logo className="w-36 h-36 drop-shadow-lg" />
           <h1 className="text-white text-4xl font-extrabold mt-7 tracking-tight">Go-PKL</h1>
           <div className="w-10 h-[3px] bg-white/40 rounded-full mt-3" />
           <p className="text-white/60 text-sm font-semibold mt-3">Portal Magang Siswa</p>
@@ -364,4 +361,4 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
       )}
     </div>
   );
-};
+};2
