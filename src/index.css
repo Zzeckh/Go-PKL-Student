@@ -48,41 +48,20 @@
     outline: none !important;
     -webkit-tap-highlight-color: transparent;
   }
-
-  /* ─── Anti-garis-hitam: tombol di-layer GPU sendiri agar
-         scale/shadow tidak meninggalkan fringe sub-pixel ─── */
-  button {
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-    transform: translateZ(0);
-    -webkit-appearance: none;
-    appearance: none;
-    border: 0;
-    outline: none;
-    background-clip: padding-box;
-  }
-  button:focus,
-  button:focus-visible {
-    outline: none;
-  }
 }
 
-/* sembunyikan scrollbar tapi tetap bisa scroll */
-.scrollbar-none {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+/* ─── SEMUA scrollbar disembunyikan (scroll tetap berfungsi) ───
+   berlaku global: body, container, form, list — di semua page */
+html, body, * {
+  scrollbar-width: none;          /* Firefox */
+  -ms-overflow-style: none;       /* IE/Edge lama */
 }
-.scrollbar-none::-webkit-scrollbar {
-  display: none;
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  display: none;                  /* Chrome/Safari/WebView */
   width: 0;
   height: 0;
-}
-
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--theme-black) 14%, transparent);
-  border-radius: 9999px;
 }
 
 /* ─── Lingkaran topographic "bernafas" ─── */
@@ -118,15 +97,10 @@
 
 /* ─── CROSSFADE ANTAR STAGE ─── */
 @keyframes stage-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: scale(0.985); }
+  to   { opacity: 1; transform: scale(1); }
 }
-.stage-enter {
-  animation: stage-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-  will-change: transform;
-}
+.stage-enter { animation: stage-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 
 @keyframes stage-out {
   from { opacity: 1; transform: scale(1); }
@@ -177,10 +151,39 @@
 }
 .nav-in { animation: nav-up 700ms cubic-bezier(0.22, 1, 0.36, 1) 250ms both; }
 
-/* ─── FLUID MENYAPU KE BAWAH saat masuk dashboard ───
-   band navy 30vh meluncur keluar layar (transform = mulus, GPU) */
+/* ─── FLUID MENYAPU KE BAWAH saat masuk dashboard ─── */
 @keyframes fluid-sweep {
   from { transform: translateY(0); }
   to   { transform: translateY(145vh); }
 }
 .fluid-sweep { animation: fluid-sweep 900ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* ─── Bar chart logbook tumbuh dari bawah ─── */
+@keyframes bar-grow {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+.bar-grow {
+  transform-origin: bottom;
+  animation: bar-grow 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ─── Popover notifikasi: MASUK (dari ikon) ─── */
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(0.9) translateY(-8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.pop-in {
+  transform-origin: top right;
+  animation: pop-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ─── Popover notifikasi: KELUAR (kebalikan persis pop-in) ─── */
+@keyframes pop-out {
+  from { opacity: 1; transform: scale(1) translateY(0); }
+  to   { opacity: 0; transform: scale(0.9) translateY(-8px); }
+}
+.pop-out {
+  transform-origin: top right;
+  animation: pop-out 300ms cubic-bezier(0.4, 0, 1, 1) both;
+}
