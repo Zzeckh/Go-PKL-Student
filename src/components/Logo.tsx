@@ -7,14 +7,11 @@ interface LogoProps {
 }
 export const Logo: React.FC<LogoProps> = ({
   className = 'w-11 h-11',
-  onDark = false,
 }) => (
   <img
     src="/image.png"
     alt="Go-PKL"
-    className={`${className} object-contain select-none ${
-      onDark ? '[filter:brightness(0)_invert(1)]' : ''
-    }`}
+    className={`${className} object-contain select-none`}
     draggable={false}
   />
 );
