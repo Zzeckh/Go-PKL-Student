@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ArrowRight, ArrowLeft, Mail, Lock, Eye, EyeOff, AlertCircle, Loader2, Check, LogIn,
   MapPin, BookOpen, FileCheck,
@@ -80,6 +80,9 @@ interface LoginScreenProps {
    ══════════════════════════════════════════════════════ */
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
   const [stage, setStage] = useState<Stage>('splash');
+  const [prevStage, setPrevStage] = useState<Stage | null>(null);
+  const exitTimer = useRef<number | null>(null);
+
   const [greetIndex, setGreetIndex] = useState(0);
   const [percent, setPercent] = useState(0);
 
@@ -90,10 +93,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /* ── Transisi stage dengan crossfade ── */
+  const goTo = (next: Stage) => {
+    setPrevStage(stage);
+    setStage(next);
+    if (exitTimer.current) window.clearTimeout(exitTimer.current);
+    exitTimer.current = window.setTimeout(() => setPrevStage(null), 450);
+  };
+
   /* ── Choreography: splash 1,5s → loading 3s → start ── */
   useEffect(() => {
     if (stage === 'splash') {
-      const t = setTimeout(() => setStage('loading'), 1500);
+      const t = setTimeout(() => goTo('loading'), 1500);
       return () => clearTimeout(t);
     }
     if (stage === 'loading') {
@@ -109,10 +120,11 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
         const p = Math.min(100, Math.round(((Date.now() - start) / 3000) * 100));
         setPercent(p);
       }, 50);
-      const t = setTimeout(() => setStage('start'), 3000);
+      const t = setTimeout(() => goTo('start'), 3000);
 
       return () => { clearInterval(greet); clearInterval(prog); clearTimeout(t); };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -146,6 +158,194 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
     }
   };
 
+  /* ══════════ VIEW PER STAGE ══════════ */
+
+  const splashView = (
+    <div className="w-full h-full flex flex-col items-center justify-center">
+      <Logo className="w-36 h-36 drop-shadow-lg splash-logo" />
+      <h1 className="text-white text-4xl font-extrabold mt-7 tracking-tight splash-item" style={{ animationDelay: '250ms' }}>
+        Go-PKL
+      </h1>
+      <div className="w-10 h-[3px] bg-white/40 rounded-full mt-3 splash-divider" style={{ animationDelay: '400ms' }} />
+      <p className="text-white/60 text-sm font-semibold mt-3 splash-item" style={{ animationDelay: '450ms' }}>
+        Portal Magang Siswa
+      </p>
+      <p className="absolute bottom-8 text-[10px] font-semibold text-white/40 splash-item" style={{ animationDelay: '600ms' }}>
+        © 2026 Go-PKL
+      </p>
+    </div>
+  );
+
+  const loadingView = (
+    <div className="w-full h-[70%] flex flex-col items-center justify-center px-8">
+      <div className="w-16 h-16 rounded-[18px] bg-navy flex items-center justify-center shadow-md shadow-navy/25">
+        <Logo className="w-10 h-10" />
+      </div>
+
+      <p key={greetIndex} className="greet-swap text-2xl font-extrabold text-navy tracking-tight text-center min-h-[36px] mt-5">
+        {GREETINGS[greetIndex]}
+      </p>
+
+      <div className="w-full max-w-[264px] mt-6">
+        <div className="h-2 bg-mist rounded-full overflow-hidden">
+          <div
+            className="h-full bg-navy rounded-full transition-[width] duration-100 ease-linear"
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+        <div className="flex items-center justify-between mt-2">
+          <p className="text-[11px] font-semibold text-navy/50">Menyiapkan pengalaman PKL-mu...</p>
+          <p className="text-[11px] font-extrabold text-navy tabular-nums">{percent}%</p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 mt-6">
+        {STEPS.map(s => {
+          const active = percent >= s.at;
+          return (
+            <span
+              key={s.label}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-bold transition-all duration-300 ${
+                active
+                  ? 'bg-navy border-navy text-white shadow-sm scale-105'
+                  : 'bg-white border-mist text-navy/40'
+              }`}
+            >
+              <s.icon className="w-3 h-3" /> {s.label}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const startView = (
+    <div className="w-full h-full flex flex-col">
+      <div className="flex-1 flex flex-col items-center justify-center px-8 text-center pt-20">
+        <h1 className="text-white text-4xl font-extrabold tracking-tight">Ayo Mulai!</h1>
+        <p className="text-white/70 text-sm font-semibold mt-3 leading-relaxed">
+          Masuk dengan akun sekolahmu dan mulai langkah magangmu hari ini.
+        </p>
+        <div className="flex flex-wrap justify-center gap-2 mt-6">
+          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-[11px] font-bold text-white/80">
+            <MapPin className="w-3 h-3" /> Absensi GPS
+          </span>
+          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-[11px] font-bold text-white/80">
+            <BookOpen className="w-3 h-3" /> Logbook
+          </span>
+          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-[11px] font-bold text-white/80">
+            <FileCheck className="w-3 h-3" /> Perizinan
+          </span>
+        </div>
+      </div>
+
+      <div className="p-6 pt-0">
+        <button
+          onClick={() => goTo('login')}
+          className="w-full bg-white text-navy rounded-full py-4 text-sm font-extrabold shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+        >
+          Masuk <ArrowRight className="w-4 h-4" />
+        </button>
+        <p className="text-center text-[11px] font-semibold text-white/50 mt-3">
+          Butuh bantuan? Hubungi tim Hubin sekolahmu.
+        </p>
+      </div>
+    </div>
+  );
+
+  const loginView = (
+    <div className="absolute inset-x-0 bottom-0 top-[calc(30%+72px)] overflow-y-auto scrollbar-none">
+      <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-5">
+        <div>
+          <h1 className="text-2xl font-extrabold text-navy tracking-tight">Masuk</h1>
+          <div className="w-10 h-[3px] bg-steel rounded-full mt-1.5" />
+        </div>
+
+        <div>
+          <label className="text-[11px] font-bold text-navy/70 uppercase tracking-wide block mb-1">Email</label>
+          <div className="flex items-center gap-2.5 border-b border-mist focus-within:border-steel transition-colors py-2.5">
+            <Mail className="w-4 h-4 text-navy/40 shrink-0" />
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="nama@siswa.sch.id"
+              className="flex-1 bg-transparent text-sm font-semibold text-navy outline-none placeholder:text-navy/30"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-[11px] font-bold text-navy/70 uppercase tracking-wide block mb-1">Password</label>
+          <div className="flex items-center gap-2.5 border-b border-mist focus-within:border-steel transition-colors py-2.5">
+            <Lock className="w-4 h-4 text-navy/40 shrink-0" />
+            <input
+              type={showPassword ? 'text' : 'password'}
+              required
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="Masukkan password"
+              className="flex-1 bg-transparent text-sm font-semibold text-navy outline-none placeholder:text-navy/30"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="text-navy/40 hover:text-navy transition-colors"
+              aria-label="Tampilkan password"
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <button type="button" onClick={() => setRemember(!remember)} className="flex items-center gap-2">
+            <span className={`w-5 h-5 rounded-[6px] border flex items-center justify-center transition-colors ${
+              remember ? 'bg-navy border-navy' : 'bg-white border-mist'
+            }`}>
+              {remember && <Check className="w-3 h-3 text-white" />}
+            </span>
+            <span className="text-xs font-semibold text-navy/70">Ingat saya</span>
+          </button>
+          <button type="button" className="text-xs font-bold text-steel hover:underline">
+            Lupa password?
+          </button>
+        </div>
+
+        {error && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-[16px] flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+            <p className="text-xs font-semibold text-red-600 leading-relaxed">{error}</p>
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-navy text-white rounded-full py-3.5 text-sm font-bold hover:bg-navy/90 active:scale-[0.98] transition-all shadow-md shadow-navy/25 flex items-center justify-center gap-2 disabled:opacity-60"
+        >
+          {loading ? (
+            <><Loader2 className="w-4 h-4 animate-spin" /> Memeriksa...</>
+          ) : (
+            <><LogIn className="w-4 h-4" /> Masuk</>
+          )}
+        </button>
+
+        <p className="text-center text-[11px] font-semibold text-navy/50">
+          Belum punya akun? Akun dibuat oleh admin sekolah.
+        </p>
+      </form>
+    </div>
+  );
+
+  const VIEWS: Record<Stage, React.ReactNode> = {
+    splash: splashView,
+    loading: loadingView,
+    start: startView,
+    login: loginView,
+  };
+
   return (
     <div className="relative min-h-screen bg-white overflow-hidden">
 
@@ -157,10 +357,22 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
         <div className="absolute inset-0 overflow-hidden">
           <TopoPattern />
         </div>
-        <svg className="absolute bottom-full left-0 w-full h-[90px]" viewBox="0 0 1440 190" preserveAspectRatio="none">
+
+        {/* wave tepi ATAS fluid */}
+        <svg
+          className="block absolute left-0 w-full h-[90px] bottom-[calc(100%-4px)]"
+          viewBox="0 0 1440 190"
+          preserveAspectRatio="none"
+        >
           <path d={WAVE_BOTTOM_FILL} fill="var(--theme-navy)" />
         </svg>
-        <svg className="absolute top-full left-0 w-full h-[90px]" viewBox="0 0 1440 190" preserveAspectRatio="none">
+
+        {/* wave tepi BAWAH fluid */}
+        <svg
+          className="block absolute left-0 w-full h-[90px] top-[calc(100%-4px)]"
+          viewBox="0 0 1440 190"
+          preserveAspectRatio="none"
+        >
           <path d={WAVE_TOP_FILL} fill="var(--theme-navy)" />
         </svg>
       </div>
@@ -168,8 +380,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
       {/* ═══ HEADER PERSISTEN (start ↔ login) ═══ */}
       {(stage === 'start' || stage === 'login') && (
         <div className="absolute inset-x-0 top-0 z-20 h-[92px] pointer-events-none header-in">
-
-          {/* logo: kiri saat start, kanan saat login */}
           <div
             className="absolute top-6 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
             style={{ left: stage === 'login' ? 'calc(100% - 68px)' : '24px' }}
@@ -177,9 +387,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
             <Logo className="w-11 h-11 drop-shadow-md" />
           </div>
 
-          {/* slot KIRI: nama ↔ tombol kembali (morph di tempat) */}
           <div className="absolute top-6 left-6 h-11 flex items-center">
-            {/* nama */}
             <div className={`absolute left-0 h-11 flex flex-col justify-center transition-all duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
               stage === 'start'
                 ? 'opacity-100 translate-x-14 scale-100'
@@ -189,9 +397,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
               <p className="text-white/60 text-[11px] font-semibold whitespace-nowrap">Portal Magang Siswa</p>
             </div>
 
-            {/* tombol kembali */}
             <button
-              onClick={() => setStage('start')}
+              onClick={() => goTo('start')}
               className={`relative pointer-events-auto flex items-center gap-2 h-11 px-5 rounded-full bg-white/10 border border-white/15 text-white text-xs font-bold hover:bg-white/20 active:scale-95 transition-all duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)] whitespace-nowrap ${
                 stage === 'login'
                   ? 'opacity-100 translate-x-0 scale-100'
@@ -204,208 +411,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
         </div>
       )}
 
-      {/* ═══ STAGE: SPLASH (1,5 dtk) ═══ */}
-      {stage === 'splash' && (
-        <div key="splash" className="absolute inset-0 z-10 flex flex-col items-center justify-center rise-in">
-          <Logo className="w-36 h-36 drop-shadow-lg" />
-          <h1 className="text-white text-4xl font-extrabold mt-7 tracking-tight">Go-PKL</h1>
-          <div className="w-10 h-[3px] bg-white/40 rounded-full mt-3" />
-          <p className="text-white/60 text-sm font-semibold mt-3">Portal Magang Siswa</p>
-          <p className="absolute bottom-8 text-[10px] font-semibold text-white/40">
-            © 2026 Go-PKL
-          </p>
+      {/* ═══ LAYAR LAMA: fade-out (crossfade) ═══ */}
+      {prevStage && prevStage !== stage && (
+        <div key={`exit-${prevStage}`} className="absolute inset-0 z-10 pointer-events-none stage-exit">
+          {VIEWS[prevStage]}
         </div>
       )}
 
-      {/* ═══ STAGE: LOADING (3 dtk) — layout baru ═══ */}
-      {stage === 'loading' && (
-        <div
-          key="loading"
-          className="absolute inset-x-0 top-0 h-[70%] z-10 flex flex-col items-center justify-center px-8 rise-in"
-          style={{ animationDelay: '200ms' }}
-        >
-          {/* logo di chip navy (pakem background terang) */}
-          <div className="w-16 h-16 rounded-[18px] bg-navy flex items-center justify-center shadow-md shadow-navy/25">
-            <Logo className="w-10 h-10" />
-          </div>
-
-          {/* sapaan bergantian */}
-          <p
-            key={greetIndex}
-            className="greet-swap text-2xl font-extrabold text-navy tracking-tight text-center min-h-[36px] mt-5"
-          >
-            {GREETINGS[greetIndex]}
-          </p>
-
-          {/* progress bar + persen real-time */}
-          <div className="w-full max-w-[264px] mt-6">
-            <div className="h-2 bg-mist rounded-full overflow-hidden">
-              <div
-                className="h-full bg-navy rounded-full transition-[width] duration-100 ease-linear"
-                style={{ width: `${percent}%` }}
-              />
-            </div>
-            <div className="flex items-center justify-between mt-2">
-              <p className="text-[11px] font-semibold text-navy/50">
-                Menyiapkan pengalaman PKL-mu...
-              </p>
-              <p className="text-[11px] font-extrabold text-navy tabular-nums">{percent}%</p>
-            </div>
-          </div>
-
-          {/* steps fitur menyala berurutan */}
-          <div className="flex items-center gap-2 mt-6">
-            {STEPS.map(s => {
-              const active = percent >= s.at;
-              return (
-                <span
-                  key={s.label}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-bold transition-all duration-300 ${
-                    active
-                      ? 'bg-navy border-navy text-white shadow-sm scale-105'
-                      : 'bg-white border-mist text-navy/40'
-                  }`}
-                >
-                  <s.icon className="w-3 h-3" /> {s.label}
-                </span>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ═══ STAGE: START ═══ */}
-      {stage === 'start' && (
-        <div key="start" className="absolute inset-0 z-10 flex flex-col rise-in">
-          {/* tengah: headline + chips */}
-          <div className="flex-1 flex flex-col items-center justify-center px-8 text-center pt-20">
-            <h1 className="text-white text-4xl font-extrabold tracking-tight">
-              Ayo Mulai!
-            </h1>
-            <p className="text-white/70 text-sm font-semibold mt-3 leading-relaxed">
-              Masuk dengan akun sekolahmu dan mulai langkah magangmu hari ini.
-            </p>
-            <div className="flex flex-wrap justify-center gap-2 mt-6">
-              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-[11px] font-bold text-white/80">
-                <MapPin className="w-3 h-3" /> Absensi GPS
-              </span>
-              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-[11px] font-bold text-white/80">
-                <BookOpen className="w-3 h-3" /> Logbook
-              </span>
-              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-[11px] font-bold text-white/80">
-                <FileCheck className="w-3 h-3" /> Perizinan
-              </span>
-            </div>
-          </div>
-
-          {/* bawah: CTA */}
-          <div className="p-6 pt-0">
-            <button
-              onClick={() => setStage('login')}
-              className="w-full bg-white text-navy rounded-full py-4 text-sm font-extrabold shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-            >
-              Masuk <ArrowRight className="w-4 h-4" />
-            </button>
-            <p className="text-center text-[11px] font-semibold text-white/50 mt-3">
-              Butuh bantuan? Hubungi tim Hubin sekolahmu.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* ═══ STAGE: LOGIN ═══ */}
-      {stage === 'login' && (
-        <div
-          key="form"
-          className="absolute inset-x-0 bottom-0 top-[calc(30%+72px)] z-10 overflow-y-auto rise-in"
-        >
-          <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-5">
-            <div>
-              <h1 className="text-2xl font-extrabold text-navy tracking-tight">Masuk</h1>
-              <div className="w-10 h-[3px] bg-steel rounded-full mt-1.5" />
-            </div>
-
-            <div>
-              <label className="text-[11px] font-bold text-navy/70 uppercase tracking-wide block mb-1">
-                Email
-              </label>
-              <div className="flex items-center gap-2.5 border-b border-mist focus-within:border-steel transition-colors py-2.5">
-                <Mail className="w-4 h-4 text-navy/40 shrink-0" />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="nama@siswa.sch.id"
-                  className="flex-1 bg-transparent text-sm font-semibold text-navy outline-none placeholder:text-navy/30"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="text-[11px] font-bold text-navy/70 uppercase tracking-wide block mb-1">
-                Password
-              </label>
-              <div className="flex items-center gap-2.5 border-b border-mist focus-within:border-steel transition-colors py-2.5">
-                <Lock className="w-4 h-4 text-navy/40 shrink-0" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="Masukkan password"
-                  className="flex-1 bg-transparent text-sm font-semibold text-navy outline-none placeholder:text-navy/30"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="text-navy/40 hover:text-navy transition-colors"
-                  aria-label="Tampilkan password"
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <button type="button" onClick={() => setRemember(!remember)} className="flex items-center gap-2">
-                <span className={`w-5 h-5 rounded-[6px] border flex items-center justify-center transition-colors ${
-                  remember ? 'bg-navy border-navy' : 'bg-white border-mist'
-                }`}>
-                  {remember && <Check className="w-3 h-3 text-white" />}
-                </span>
-                <span className="text-xs font-semibold text-navy/70">Ingat saya</span>
-              </button>
-              <button type="button" className="text-xs font-bold text-steel hover:underline">
-                Lupa password?
-              </button>
-            </div>
-
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-[16px] flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-                <p className="text-xs font-semibold text-red-600 leading-relaxed">{error}</p>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-navy text-white rounded-full py-3.5 text-sm font-bold hover:bg-navy/90 active:scale-[0.98] transition-all shadow-md shadow-navy/25 flex items-center justify-center gap-2 disabled:opacity-60"
-            >
-              {loading ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Memeriksa...</>
-              ) : (
-                <><LogIn className="w-4 h-4" /> Masuk</>
-              )}
-            </button>
-
-            <p className="text-center text-[11px] font-semibold text-navy/50">
-              Belum punya akun? Akun dibuat oleh admin sekolah.
-            </p>
-          </form>
-        </div>
-      )}
+      {/* ═══ LAYAR BARU: fade-in ═══ */}
+      <div key={`enter-${stage}`} className="absolute inset-0 z-10 stage-enter">
+        {VIEWS[stage]}
+      </div>
     </div>
   );
 };
