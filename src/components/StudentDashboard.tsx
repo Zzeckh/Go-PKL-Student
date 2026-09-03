@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import {
-  LogOut, MapPin, FileCheck, ChevronRight, Clock, CheckCircle2,
+  LogOut, MapPin, BookOpen, FileCheck, ChevronRight, Clock, CheckCircle2,
+  TrendingUp, User,
 } from 'lucide-react';
 import { BottomNav, TABS, type TabId } from './BottomNav';
-import { Logo } from './Logo';
 import { TopoPattern, WAVE_TOP_FILL, WAVE_BOTTOM_FILL } from './LoginScreen';
 
 interface StudentDashboardProps {
@@ -11,9 +11,16 @@ interface StudentDashboardProps {
   onLogout: () => void;
 }
 
+/* ── Aksi cepat (lingkaran, ala referensi) ── */
+const QUICK: { icon: React.ElementType; label: string; tab: TabId }[] = [
+  { icon: MapPin,    label: 'Absen',   tab: 'absensi' },
+  { icon: BookOpen,  label: 'Logbook', tab: 'logbook' },
+  { icon: FileCheck, label: 'Izin',    tab: 'izin' },
+  { icon: User,      label: 'Profil',  tab: 'profil' },
+];
+
 /* ══════════════════════════════════════════════════════
    FLUID SWEEP — replika fluid login yang menyapu ke bawah
-   saat dashboard muncul (transform = mulus, lalu unmount)
    ══════════════════════════════════════════════════════ */
 const FluidSweep: React.FC = () => {
   const [gone, setGone] = useState(false);
@@ -27,14 +34,12 @@ const FluidSweep: React.FC = () => {
 
   return (
     <div className="fluid-sweep fixed inset-x-0 top-0 z-50 pointer-events-none" style={{ height: '30vh' }}>
-      {/* badan fluid */}
       <div className="absolute inset-0 bg-navy">
         <div className="absolute inset-0 overflow-hidden">
           <TopoPattern />
         </div>
       </div>
 
-      {/* wave tepi bawah (melanjutkan bentuk fluid login) */}
       <svg
         className="block absolute left-0 w-full h-[90px] top-[calc(100%-8px)]"
         viewBox="0 0 1440 190"
@@ -43,7 +48,6 @@ const FluidSweep: React.FC = () => {
         <path d={WAVE_TOP_FILL} fill="var(--theme-navy)" />
       </svg>
 
-      {/* wave tepi atas (muncul saat band meninggalkan puncak layar) */}
       <svg
         className="block absolute left-0 w-full h-[90px] bottom-[calc(100%-8px)]"
         viewBox="0 0 1440 190"
@@ -56,43 +60,91 @@ const FluidSweep: React.FC = () => {
 };
 
 /* ══════════════════════════════════════════════════════
-   DASHBOARD SISWA — masuk ber-animasi di bawah sweep
+   DASHBOARD SISWA — layout ala referensi fintech:
+   hero navy → quick actions overlap → banner → aktivitas
+   → kartu horizontal
    ══════════════════════════════════════════════════════ */
 export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) => {
   const [tab, setTab] = useState<TabId>('home');
-  const firstName = (user?.name || 'Siswa').split(' ')[0];
+  const fullName = user?.name || 'Siswa';
+  const firstName = fullName.split(' ')[0];
+  const initials = fullName
+    .split(' ')
+    .map(w => w[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
 
   return (
     <div className="min-h-screen bg-shell">
       {/* fluid login menyapu ke bawah lalu hilang */}
       <FluidSweep />
 
-      {/* ── Header ── */}
-      <header
-        className="sticky top-0 z-20 bg-shell/80 backdrop-blur-md px-5 pt-6 pb-4 flex items-center justify-between rise-in"
-        style={{ animationDelay: '100ms' }}
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-[12px] bg-navy flex items-center justify-center shadow-md shadow-navy/20">
-            <Logo className="w-6 h-6" />
+      {/* ═══ HERO NAVY: greeting + angka besar (rounded bawah) ═══ */}
+      <div className="rise-in relative overflow-hidden bg-navy rounded-b-[32px] px-5 pt-6 pb-16">
+        <TopoPattern />
+
+        {/* header row: avatar + nama | logout */}
+        <div className="relative flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-full bg-white/15 border border-white/20 flex items-center justify-center text-white text-sm font-extrabold">
+              {initials}
+            </div>
+            <div>
+              <p className="text-white/60 text-[11px] font-semibold">Halo,</p>
+              <p className="text-white text-sm font-extrabold leading-tight">{firstName}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-[11px] font-semibold text-navy/50">Halo,</p>
-            <p className="text-sm font-extrabold text-navy leading-tight">{firstName}</p>
+          <button
+            onClick={onLogout}
+            aria-label="Keluar"
+            className="w-10 h-10 rounded-full bg-white/10 border border-white/15 text-white/70 flex items-center justify-center active:scale-90 transition-all"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* angka besar ala "Total Balance" */}
+        <div className="relative mt-6">
+          <p className="text-white/60 text-[11px] font-semibold">Total Jam Magang</p>
+          <div className="flex items-end gap-2 mt-1">
+            <p className="text-white text-4xl font-extrabold tabular-nums tracking-tight">142,5</p>
+            <span className="text-white/60 text-sm font-bold mb-1">jam</span>
+            <span className="mb-1 ml-auto flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/10 border border-white/15 text-[10px] font-bold text-white/80">
+              <TrendingUp className="w-3 h-3" /> +12% bulan ini
+            </span>
           </div>
         </div>
-        <button
-          onClick={onLogout}
-          aria-label="Keluar"
-          className="w-10 h-10 rounded-full bg-white border border-mist/60 flex items-center justify-center text-navy/50 active:scale-90 transition-all"
-        >
-          <LogOut className="w-4 h-4" />
-        </button>
-      </header>
+      </div>
 
-      {/* ── Konten ── */}
+      {/* ═══ KONTEN ═══ */}
       <main className="px-5 pb-32">
-        {tab === 'home' ? <HomeView name={firstName} /> : <PlaceholderView tab={tab} />}
+        {/* kartu aksi cepat — overlap ke hero */}
+        <div
+          className="rise-in -mt-10 relative bg-white rounded-[24px] border border-mist/60 shadow-sm p-4"
+          style={{ animationDelay: '150ms' }}
+        >
+          <div className="grid grid-cols-4 gap-2">
+            {QUICK.map(q => (
+              <button
+                key={q.label}
+                onClick={() => setTab(q.tab)}
+                className="flex flex-col items-center gap-1.5 active:scale-95 transition-all"
+              >
+                <span className="w-12 h-12 rounded-full bg-shell border border-mist/60 text-navy flex items-center justify-center">
+                  <q.icon className="w-5 h-5" />
+                </span>
+                <span className="text-[10px] font-bold text-navy/60">{q.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {tab === 'home' ? (
+          <HomeView name={firstName} />
+        ) : (
+          <PlaceholderView tab={tab} />
+        )}
       </main>
 
       {/* ── Bottom nav slide-up ── */}
@@ -101,57 +153,44 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
   );
 };
 
-/* ── HOME: staggered entrance ── */
+/* ── HOME: banner progres + aktivitas + kartu horizontal ── */
 const HomeView: React.FC<{ name: string }> = ({ name }) => (
-  <div className="flex flex-col gap-4">
-    {/* hero navy */}
+  <>
+    {/* banner progres (ala banner gradient referensi) */}
     <div
-      className="rise-in relative overflow-hidden bg-navy rounded-[24px] p-5 shadow-md shadow-navy/20"
-      style={{ animationDelay: '200ms' }}
+      className="rise-in relative overflow-hidden bg-navy rounded-[24px] p-5 mt-4 shadow-md shadow-navy/20"
+      style={{ animationDelay: '250ms' }}
     >
-      <p className="text-white/60 text-[11px] font-semibold">Semangat magang hari ini!</p>
-      <h1 className="text-white text-xl font-extrabold mt-1 tracking-tight">Halo, {name}</h1>
-
-      <div className="mt-5 flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-white/60 text-[11px] font-semibold">Status kehadiran</p>
-          <p className="text-white text-sm font-bold mt-0.5 truncate">Belum absen hari ini</p>
-        </div>
-        <button className="shrink-0 bg-white text-navy rounded-full px-5 py-2.5 text-xs font-extrabold flex items-center gap-1.5 shadow-md active:scale-95 transition-all">
-          <MapPin className="w-3.5 h-3.5" /> Absen
+      <TopoPattern />
+      <div className="relative">
+        <p className="text-white/60 text-[11px] font-semibold">Progres Magang · {name}</p>
+        <h2 className="text-white text-xl font-extrabold mt-1 leading-snug tracking-tight">
+          24 / 120 Hari
+          <br />
+          Terselesaikan
+        </h2>
+        <button className="mt-4 bg-white text-navy rounded-full px-5 py-2.5 text-[11px] font-extrabold shadow-md active:scale-95 transition-all">
+          Lihat Progres
         </button>
-      </div>
-    </div>
-
-    {/* stats */}
-    <div className="rise-in grid grid-cols-3 gap-3" style={{ animationDelay: '300ms' }}>
-      <div className="bg-white rounded-[24px] border border-mist/60 shadow-sm p-4 text-center">
-        <p className="text-2xl font-extrabold text-navy tabular-nums">18</p>
-        <p className="text-[10px] font-bold text-navy/50 mt-1 uppercase tracking-wide">Hadir</p>
-      </div>
-      <div className="bg-white rounded-[24px] border border-mist/60 shadow-sm p-4 text-center">
-        <p className="text-2xl font-extrabold text-navy tabular-nums">42</p>
-        <p className="text-[10px] font-bold text-navy/50 mt-1 uppercase tracking-wide">Logbook</p>
-      </div>
-      <div className="bg-white rounded-[24px] border border-mist/60 shadow-sm p-4 text-center">
-        <p className="text-2xl font-extrabold text-navy tabular-nums">1</p>
-        <p className="text-[10px] font-bold text-navy/50 mt-1 uppercase tracking-wide">Izin</p>
+        {/* dot pagination (dekoratif, ala referensi) */}
+        <div className="flex items-center gap-1.5 mt-4">
+          <span className="w-4 h-1.5 rounded-full bg-white" />
+          <span className="w-1.5 h-1.5 rounded-full bg-white/30" />
+          <span className="w-1.5 h-1.5 rounded-full bg-white/30" />
+        </div>
       </div>
     </div>
 
     {/* aktivitas terbaru */}
-    <section
-      className="rise-in bg-white rounded-[24px] border border-mist/60 shadow-sm p-5"
-      style={{ animationDelay: '400ms' }}
-    >
-      <div className="flex items-center justify-between">
+    <section className="rise-in mt-6" style={{ animationDelay: '350ms' }}>
+      <div className="flex items-center justify-between px-1">
         <h2 className="text-sm font-extrabold text-navy">Aktivitas Terbaru</h2>
         <button className="text-[11px] font-bold text-steel flex items-center gap-0.5">
           Lihat semua <ChevronRight className="w-3 h-3" />
         </button>
       </div>
 
-      <div className="mt-4 flex flex-col gap-4">
+      <div className="mt-3 bg-white rounded-[24px] border border-mist/60 shadow-sm p-5 flex flex-col gap-4">
         <ActivityItem
           icon={CheckCircle2}
           title="Logbook disetujui"
@@ -169,6 +208,30 @@ const HomeView: React.FC<{ name: string }> = ({ name }) => (
         />
       </div>
     </section>
+
+    {/* kartu horizontal scroll (ala marketplace referensi) */}
+    <section className="rise-in mt-6" style={{ animationDelay: '450ms' }}>
+      <h2 className="text-sm font-extrabold text-navy px-1">Ringkasan Minggu Ini</h2>
+      <div className="mt-3 flex gap-3 overflow-x-auto scrollbar-none -mx-5 px-5 pb-1">
+        <SummaryCard icon={BookOpen}  title="Logbook"  value="42 entri" sub="3 menunggu review" />
+        <SummaryCard icon={MapPin}    title="Absensi"  value="18 hari"  sub="tepat waktu" />
+        <SummaryCard icon={FileCheck} title="Perizinan" value="1 izin"  sub="disetujui" />
+      </div>
+    </section>
+  </>
+);
+
+/* ── Kartu ringkasan horizontal ── */
+const SummaryCard: React.FC<{ icon: React.ElementType; title: string; value: string; sub: string }> = ({
+  icon: Icon, title, value, sub,
+}) => (
+  <div className="shrink-0 w-[160px] bg-white rounded-[20px] border border-mist/60 shadow-sm p-4">
+    <div className="w-9 h-9 rounded-[12px] bg-navy text-white flex items-center justify-center">
+      <Icon className="w-4 h-4" />
+    </div>
+    <p className="text-[10px] font-bold text-navy/50 uppercase tracking-wide mt-3">{title}</p>
+    <p className="text-lg font-extrabold text-navy tabular-nums mt-0.5">{value}</p>
+    <p className="text-[10px] font-semibold text-navy/50 mt-0.5">{sub}</p>
   </div>
 );
 
@@ -190,7 +253,7 @@ const PlaceholderView: React.FC<{ tab: TabId }> = ({ tab }) => {
   const Icon = meta.icon;
 
   return (
-    <div className="rise-in bg-white rounded-[24px] border border-mist/60 shadow-sm p-8 flex flex-col items-center text-center">
+    <div className="rise-in bg-white rounded-[24px] border border-mist/60 shadow-sm p-8 mt-4 flex flex-col items-center text-center">
       <div className="w-16 h-16 rounded-[18px] bg-navy text-white flex items-center justify-center shadow-md shadow-navy/25">
         <Icon className="w-7 h-7" />
       </div>

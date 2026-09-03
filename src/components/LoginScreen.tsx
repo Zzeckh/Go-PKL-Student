@@ -145,7 +145,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
       const user = data?.user || data;
       if (!token) throw new Error('Respons login tidak valid.');
 
-      if (user?.role && user.role !== 'intern') {
+      /* Tolak role non-siswa dari backend web (mentor/guru/hubin/admin),
+         bukan hanya string 'intern' — role siswa backend adalah 'student'. */
+      const STAFF_ROLES = ['mentor', 'teacher', 'hubin', 'super_admin', 'admin'];
+      if (user?.role && STAFF_ROLES.includes(user.role)) {
         throw new Error('Aplikasi ini khusus role siswa. Role lain silakan pakai aplikasi web.');
       }
 
@@ -228,13 +231,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
     <div className="w-full h-full flex flex-col items-center">
       {/* konten tengah simetris */}
       <div className="flex-1 flex flex-col items-center justify-center px-8 text-center pt-24">
-        <div
-          className="splash-item w-16 h-16 rounded-[18px] bg-white/10 border border-white/15 flex items-center justify-center"
-          style={{ animationDelay: '100ms' }}
-        >
-          <Logo className="w-10 h-10" />
-        </div>
-
         <h1
           className="splash-item text-white text-[32px] font-extrabold tracking-tight mt-6"
           style={{ animationDelay: '200ms' }}

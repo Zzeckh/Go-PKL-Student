@@ -5,7 +5,10 @@
 
 const BASE = '/api';
 
-const getToken = (): string | null => localStorage.getItem('pkl_token');
+/* Token bisa ada di localStorage (Ingat saya) atau sessionStorage — cek keduanya,
+   konsisten dengan utils/auth.ts */
+const getToken = (): string | null =>
+  localStorage.getItem('pkl_token') || sessionStorage.getItem('pkl_token');
 
 interface ApiError {
   error?: string;
