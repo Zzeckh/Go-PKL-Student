@@ -14,14 +14,15 @@ export const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
 interface BottomNavProps {
   active: TabId;
   onChange: (t: TabId) => void;
+  className?: string;
 }
 
 /* ══════════════════════════════════════════════════════
    BOTTOM NAV — pill navy melayang, tab aktif = pill putih
    (referensi: expanding pill navigation)
    ══════════════════════════════════════════════════════ */
-export const BottomNav: React.FC<BottomNavProps> = ({ active, onChange }) => (
-  <nav className="fixed bottom-0 inset-x-0 z-30 px-4 pb-[calc(16px+env(safe-area-inset-bottom))] pointer-events-none">
+export const BottomNav: React.FC<BottomNavProps> = ({ active, onChange, className }) => (
+  <nav className={`fixed bottom-0 inset-x-0 z-30 px-4 pb-[calc(16px+env(safe-area-inset-bottom))] pointer-events-none ${className ?? ''}`}>
     <div className="pointer-events-auto mx-auto max-w-md bg-navy rounded-full p-2 shadow-lg shadow-navy/30 flex items-center justify-between">
       {TABS.map(tab => {
         const isActive = tab.id === active;

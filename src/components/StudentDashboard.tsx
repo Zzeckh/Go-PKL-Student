@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   LogOut, MapPin, FileCheck, ChevronRight, Clock, CheckCircle2,
 } from 'lucide-react';
-import { BottomNav, TABS } from './BottomNav';
-import type { TabId } from './BottomNav';
+import { BottomNav, TABS, type TabId } from './BottomNav';
 import { Logo } from './Logo';
+import { TopoPattern, WAVE_TOP_FILL, WAVE_BOTTOM_FILL } from './LoginScreen';
 
 interface StudentDashboardProps {
   user: any;
@@ -12,7 +12,51 @@ interface StudentDashboardProps {
 }
 
 /* ══════════════════════════════════════════════════════
-   DASHBOARD SISWA — shell + home + bottom nav
+   FLUID SWEEP — replika fluid login yang menyapu ke bawah
+   saat dashboard muncul (transform = mulus, lalu unmount)
+   ══════════════════════════════════════════════════════ */
+const FluidSweep: React.FC = () => {
+  const [gone, setGone] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setGone(true), 1000);
+    return () => clearTimeout(t);
+  }, []);
+
+  if (gone) return null;
+
+  return (
+    <div className="fluid-sweep fixed inset-x-0 top-0 z-50 pointer-events-none" style={{ height: '30vh' }}>
+      {/* badan fluid */}
+      <div className="absolute inset-0 bg-navy">
+        <div className="absolute inset-0 overflow-hidden">
+          <TopoPattern />
+        </div>
+      </div>
+
+      {/* wave tepi bawah (melanjutkan bentuk fluid login) */}
+      <svg
+        className="block absolute left-0 w-full h-[90px] top-[calc(100%-8px)]"
+        viewBox="0 0 1440 190"
+        preserveAspectRatio="none"
+      >
+        <path d={WAVE_TOP_FILL} fill="var(--theme-navy)" />
+      </svg>
+
+      {/* wave tepi atas (muncul saat band meninggalkan puncak layar) */}
+      <svg
+        className="block absolute left-0 w-full h-[90px] bottom-[calc(100%-8px)]"
+        viewBox="0 0 1440 190"
+        preserveAspectRatio="none"
+      >
+        <path d={WAVE_BOTTOM_FILL} fill="var(--theme-navy)" />
+      </svg>
+    </div>
+  );
+};
+
+/* ══════════════════════════════════════════════════════
+   DASHBOARD SISWA — masuk ber-animasi di bawah sweep
    ══════════════════════════════════════════════════════ */
 export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) => {
   const [tab, setTab] = useState<TabId>('home');
@@ -20,8 +64,14 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
 
   return (
     <div className="min-h-screen bg-shell">
-      {/* ── Header ─ */}
-      <header className="sticky top-0 z-20 bg-shell/80 backdrop-blur-md px-5 pt-6 pb-4 flex items-center justify-between">
+      {/* fluid login menyapu ke bawah lalu hilang */}
+      <FluidSweep />
+
+      {/* ── Header ── */}
+      <header
+        className="sticky top-0 z-20 bg-shell/80 backdrop-blur-md px-5 pt-6 pb-4 flex items-center justify-between rise-in"
+        style={{ animationDelay: '100ms' }}
+      >
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-[12px] bg-navy flex items-center justify-center shadow-md shadow-navy/20">
             <Logo className="w-6 h-6" />
@@ -45,17 +95,20 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
         {tab === 'home' ? <HomeView name={firstName} /> : <PlaceholderView tab={tab} />}
       </main>
 
-      {/* ── Bottom nav ── */}
-      <BottomNav active={tab} onChange={setTab} />
+      {/* ── Bottom nav slide-up ── */}
+      <BottomNav className="nav-in" active={tab} onChange={setTab} />
     </div>
   );
 };
 
-/* ── HOME: hero kehadiran + stats + aktivitas ── */
+/* ── HOME: staggered entrance ── */
 const HomeView: React.FC<{ name: string }> = ({ name }) => (
   <div className="flex flex-col gap-4">
     {/* hero navy */}
-    <div className="relative overflow-hidden bg-navy rounded-[24px] p-5 shadow-md shadow-navy/20">
+    <div
+      className="rise-in relative overflow-hidden bg-navy rounded-[24px] p-5 shadow-md shadow-navy/20"
+      style={{ animationDelay: '200ms' }}
+    >
       <p className="text-white/60 text-[11px] font-semibold">Semangat magang hari ini!</p>
       <h1 className="text-white text-xl font-extrabold mt-1 tracking-tight">Halo, {name}</h1>
 
@@ -71,7 +124,7 @@ const HomeView: React.FC<{ name: string }> = ({ name }) => (
     </div>
 
     {/* stats */}
-    <div className="grid grid-cols-3 gap-3">
+    <div className="rise-in grid grid-cols-3 gap-3" style={{ animationDelay: '300ms' }}>
       <div className="bg-white rounded-[24px] border border-mist/60 shadow-sm p-4 text-center">
         <p className="text-2xl font-extrabold text-navy tabular-nums">18</p>
         <p className="text-[10px] font-bold text-navy/50 mt-1 uppercase tracking-wide">Hadir</p>
@@ -87,7 +140,10 @@ const HomeView: React.FC<{ name: string }> = ({ name }) => (
     </div>
 
     {/* aktivitas terbaru */}
-    <section className="bg-white rounded-[24px] border border-mist/60 shadow-sm p-5">
+    <section
+      className="rise-in bg-white rounded-[24px] border border-mist/60 shadow-sm p-5"
+      style={{ animationDelay: '400ms' }}
+    >
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-extrabold text-navy">Aktivitas Terbaru</h2>
         <button className="text-[11px] font-bold text-steel flex items-center gap-0.5">
@@ -128,13 +184,13 @@ const ActivityItem: React.FC<{ icon: React.ElementType; title: string; sub: stri
   </div>
 );
 
-/* ── Placeholder tab lain (segera dibangun) ── */
+/* ── Placeholder tab lain ── */
 const PlaceholderView: React.FC<{ tab: TabId }> = ({ tab }) => {
   const meta = TABS.find(t => t.id === tab)!;
   const Icon = meta.icon;
 
   return (
-    <div className="bg-white rounded-[24px] border border-mist/60 shadow-sm p-8 flex flex-col items-center text-center">
+    <div className="rise-in bg-white rounded-[24px] border border-mist/60 shadow-sm p-8 flex flex-col items-center text-center">
       <div className="w-16 h-16 rounded-[18px] bg-navy text-white flex items-center justify-center shadow-md shadow-navy/25">
         <Icon className="w-7 h-7" />
       </div>

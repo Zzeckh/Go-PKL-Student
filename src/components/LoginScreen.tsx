@@ -9,15 +9,15 @@ import { Logo } from './Logo';
 /* ⚠️ Sesuaikan dengan path asli di routes/authRoutes.js backend */
 const LOGIN_URL = '/api/auth/login';
 
-type Stage = 'splash' | 'loading' | 'start' | 'login' | 'exit';
+type Stage = 'splash' | 'loading' | 'start' | 'login';
 
-/* ── Posisi fluid per stage (±1/3 layar saat login/loading) ── */
+/* ── Posisi fluid per stage ──
+   splash/start: overhang -120px → tepi wave di luar layar (anti-glitch) */
 const FLUID_POS: Record<Stage, { top: string; bottom: string }> = {
-  splash:  { top: '0%',   bottom: '0%'   },
-  loading: { top: '70%',  bottom: '0%'   },
-  start:   { top: '0%',   bottom: '0%'   },
-  login:   { top: '0%',   bottom: '70%'  },
-  exit:    { top: '100%', bottom: '-30%' },  // fluid meluncur ke bawah keluar layar
+  splash:  { top: '-120px', bottom: '-120px' },
+  loading: { top: '70%',    bottom: '-120px' },
+  start:   { top: '-120px', bottom: '-120px' },
+  login:   { top: '0%',     bottom: '70%'    },
 };
 
 /* ── Sapaan multibahasa ── */
@@ -40,12 +40,12 @@ const STEPS = [
 ];
 
 /* ── Kurva S halus ala referensi ── */
-const CURVE = 'M0,96 C240,40 480,40 720,96 C960,150 1200,150 1440,96';
-const WAVE_TOP_FILL = `${CURVE} L1440,0 L0,0 Z`;
-const WAVE_BOTTOM_FILL = `${CURVE} L1440,190 L0,190 Z`;
+export const CURVE = 'M0,96 C240,40 480,40 720,96 C960,150 1200,150 1440,96';
+export const WAVE_TOP_FILL = `${CURVE} L1440,0 L0,0 Z`;
+export const WAVE_BOTTOM_FILL = `${CURVE} L1440,190 L0,190 Z`;
 
 /* ── Pola topographic beranimasi ── */
-const TopoPattern: React.FC = () => (
+export const TopoPattern: React.FC = () => (
   <svg
     className="absolute inset-0 h-full w-full opacity-[0.12]"
     viewBox="0 0 400 500"
@@ -77,8 +77,7 @@ interface LoginScreenProps {
 }
 
 /* ══════════════════════════════════════════════════════
-   SPLASH (1,5s) → LOADING (3s) → START → LOGIN → EXIT
-   exit = fluid meluncur ke bawah, lalu dashboard muncul
+   SPLASH (1,5s) → LOADING (3s) → START → LOGIN
    ══════════════════════════════════════════════════════ */
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
   const [stage, setStage] = useState<Stage>('splash');
@@ -146,18 +145,16 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
       const user = data?.user || data;
       if (!token) throw new Error('Respons login tidak valid.');
 
-      const ALLOWED_ROLES = ['student', 'intern'];
-      if (user?.role && !ALLOWED_ROLES.includes(user.role)) {
+      if (user?.role && user.role !== 'intern') {
         throw new Error('Aplikasi ini khusus role siswa. Role lain silakan pakai aplikasi web.');
       }
 
       setToken(token, remember);
       saveUser(user, remember);
 
-      /* ✅ transisi keluar: fluid meluncur ke bawah (900ms),
-         baru dashboard di-mount */
-      goTo('exit');
-      window.setTimeout(() => onSuccess(user), 900);
+      /* langsung pindah — FluidSweep di dashboard yang
+         melanjutkan gerakan fluid ke bawah */
+      onSuccess(user);
     } catch (err: any) {
       setError(err?.message || 'Terjadi kesalahan, coba lagi.');
     } finally {
@@ -226,32 +223,48 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
     </div>
   );
 
+  /* ═══ START PAGE — SIMETRIS PENUH DI TENGAH ═══ */
   const startView = (
-    <div className="w-full h-full flex flex-col">
-      <div className="flex-1 flex flex-col items-center justify-center px-8 text-center pt-20">
-        <h1 className="text-white text-4xl font-extrabold tracking-tight">Ayo Mulai!</h1>
-        <p className="text-white/70 text-sm font-semibold mt-3 leading-relaxed">
-          Masuk dengan akun sekolahmu dan mulai langkah magangmu hari ini.
-        </p>
-        <div className="flex flex-wrap justify-center gap-2 mt-6">
-          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-[11px] font-bold text-white/80">
-            <MapPin className="w-3 h-3" /> Absensi GPS
-          </span>
-          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-[11px] font-bold text-white/80">
-            <BookOpen className="w-3 h-3" /> Logbook
-          </span>
-          <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-[11px] font-bold text-white/80">
-            <FileCheck className="w-3 h-3" /> Perizinan
-          </span>
+    <div className="w-full h-full flex flex-col items-center">
+      {/* konten tengah simetris */}
+      <div className="flex-1 flex flex-col items-center justify-center px-8 text-center pt-24">
+        <div
+          className="splash-item w-16 h-16 rounded-[18px] bg-white/10 border border-white/15 flex items-center justify-center"
+          style={{ animationDelay: '100ms' }}
+        >
+          <Logo className="w-10 h-10" />
         </div>
+
+        <h1
+          className="splash-item text-white text-[32px] font-extrabold tracking-tight mt-6"
+          style={{ animationDelay: '200ms' }}
+        >
+          Ayo Mulai!
+        </h1>
+
+        <div
+          className="splash-item w-10 h-[3px] bg-white/40 rounded-full mt-4"
+          style={{ animationDelay: '300ms' }}
+        />
+
+        <p
+          className="splash-item text-white/60 text-sm font-semibold mt-4 leading-relaxed"
+          style={{ animationDelay: '350ms' }}
+        >
+          Masuk dan mulai langkah magangmu hari ini.
+        </p>
       </div>
 
-      <div className="p-6 pt-0">
+      {/* CTA bawah */}
+      <div
+        className="splash-item w-full px-6 pb-[calc(24px+env(safe-area-inset-bottom))]"
+        style={{ animationDelay: '450ms' }}
+      >
         <button
           onClick={() => goTo('login')}
-          className="w-full bg-white text-navy rounded-full py-4 text-sm font-extrabold shadow-md shadow-black/20 border-0 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          className="w-full bg-white text-navy rounded-full py-4 text-sm font-extrabold shadow-lg shadow-black/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
         >
-          Masuk <ArrowRight className="w-4 h-4" />
+          Masuk dengan Akun Sekolah <ArrowRight className="w-4 h-4" />
         </button>
         <p className="text-center text-[11px] font-semibold text-white/50 mt-3">
           Butuh bantuan? Hubungi tim Hubin sekolahmu.
@@ -351,14 +364,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
     loading: loadingView,
     start: startView,
     login: loginView,
-    exit: null,   // stage exit: form sudah lenyap, fluid meluncur keluar
   };
 
   return (
     <div className="relative min-h-screen bg-white overflow-hidden">
 
-      {/* ═══ LAPISAN FLUID ═══
-          persis 2 SVG wave, overlap 8px ke dalam fluid (seam-proof) */}
+      {/* ═══ LAPISAN FLUID ═══ */}
       <div
         className="absolute inset-x-0 z-0 bg-navy transition-all duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
         style={{ top: FLUID_POS[stage].top, bottom: FLUID_POS[stage].bottom }}
@@ -367,7 +378,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
           <TopoPattern />
         </div>
 
-        {/* wave tepi ATAS fluid (kelihatan saat fluid di bawah / loading) */}
         <svg
           className="block absolute left-0 w-full h-[90px] bottom-[calc(100%-8px)]"
           viewBox="0 0 1440 190"
@@ -376,7 +386,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
           <path d={WAVE_BOTTOM_FILL} fill="var(--theme-navy)" />
         </svg>
 
-        {/* wave tepi BAWAH fluid (kelihatan saat fluid di atas / login) */}
         <svg
           className="block absolute left-0 w-full h-[90px] top-[calc(100%-8px)]"
           viewBox="0 0 1440 190"
@@ -386,15 +395,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
         </svg>
       </div>
 
-      {/* ═══ HEADER PERSISTEN (start ↔ login ↔ exit) ═══
-          saat exit: header fade-out sambil ikut turun */}
-      {(stage === 'start' || stage === 'login' || stage === 'exit') && (
-        <div className={`absolute inset-x-0 top-0 z-20 h-[92px] pointer-events-none header-in transition-all duration-500 ${
-          stage === 'exit' ? 'opacity-0 translate-y-6' : 'opacity-100 translate-y-0'
-        }`}>
+      {/* ═══ HEADER PERSISTEN (start ↔ login) ═══ */}
+      {(stage === 'start' || stage === 'login') && (
+        <div className="absolute inset-x-0 top-0 z-20 h-[92px] pointer-events-none header-in">
           <div
             className="absolute top-6 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
-            style={{ left: (stage === 'login' || stage === 'exit') ? 'calc(100% - 68px)' : '24px' }}
+            style={{ left: stage === 'login' ? 'calc(100% - 68px)' : '24px' }}
           >
             <Logo className="w-11 h-11 drop-shadow-md" />
           </div>
@@ -412,7 +418,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
             <button
               onClick={() => goTo('start')}
               className={`relative pointer-events-auto flex items-center gap-2 h-11 px-5 rounded-full bg-white/10 border border-white/15 text-white text-xs font-bold hover:bg-white/20 active:scale-95 transition-all duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)] whitespace-nowrap ${
-                stage === 'login' || stage === 'exit'
+                stage === 'login'
                   ? 'opacity-100 translate-x-0 scale-100'
                   : 'opacity-0 -translate-x-4 scale-90 pointer-events-none'
               }`}
@@ -423,16 +429,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
         </div>
       )}
 
-      {/* ═══ LAYAR LAMA: fade-out (crossfade) ═══
-          khusus dari login: form langsung lenyap (tanpa exit overlay) */}
+      {/* ═══ LAYAR LAMA: fade-out (crossfade) ═══ */}
       {prevStage && prevStage !== stage && prevStage !== 'login' && (
         <div key={`exit-${prevStage}`} className="absolute inset-0 z-10 pointer-events-none stage-exit">
           {VIEWS[prevStage]}
         </div>
       )}
 
-      {/* ═══ LAYAR BARU: fade-in ═══
-          khusus login: form muncul SETELAH animasi fluid beres (900ms) */}
+      {/* ═══ LAYAR BARU: fade-in ═══ */}
       <div
         key={`enter-${stage}`}
         className="absolute inset-0 z-10 stage-enter"
