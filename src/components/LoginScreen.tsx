@@ -31,6 +31,13 @@ const GREETINGS = [
   'Selamat Datang',     // Indonesia
 ];
 
+/* ── Steps yang "menyala" seiring progress ── */
+const STEPS = [
+  { icon: MapPin,    label: 'Absensi',   at: 15 },
+  { icon: BookOpen,  label: 'Logbook',   at: 45 },
+  { icon: FileCheck, label: 'Perizinan', at: 75 },
+];
+
 /* ── Kurva S halus ala referensi ── */
 const CURVE = 'M0,96 C240,40 480,40 720,96 C960,150 1200,150 1440,96';
 const WAVE_TOP_FILL = `${CURVE} L1440,0 L0,0 Z`;
@@ -74,6 +81,7 @@ interface LoginScreenProps {
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
   const [stage, setStage] = useState<Stage>('splash');
   const [greetIndex, setGreetIndex] = useState(0);
+  const [percent, setPercent] = useState(0);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -90,12 +98,20 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
     }
     if (stage === 'loading') {
       setGreetIndex(0);
-      const interval = setInterval(
+      setPercent(0);
+      const start = Date.now();
+
+      const greet = setInterval(
         () => setGreetIndex(i => Math.min(i + 1, GREETINGS.length - 1)),
         375
       );
+      const prog = setInterval(() => {
+        const p = Math.min(100, Math.round(((Date.now() - start) / 3000) * 100));
+        setPercent(p);
+      }, 50);
       const t = setTimeout(() => setStage('start'), 3000);
-      return () => { clearInterval(interval); clearTimeout(t); };
+
+      return () => { clearInterval(greet); clearInterval(prog); clearTimeout(t); };
     }
   }, [stage]);
 
@@ -188,9 +204,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
         </div>
       )}
 
-      {/* ═══ STAGE: SPLASH (1,5 dtk) ═══
-          Lingkaran putih dihapus — logo tampil penuh sebesar
-          lingkaran itu dulu (w-36 h-36 = 144px) */}
+      {/* ═══ STAGE: SPLASH (1,5 dtk) ═══ */}
       {stage === 'splash' && (
         <div key="splash" className="absolute inset-0 z-10 flex flex-col items-center justify-center rise-in">
           <Logo className="w-36 h-36 drop-shadow-lg" />
@@ -203,27 +217,60 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
         </div>
       )}
 
-      {/* ═══ STAGE: LOADING (3 dtk) ═══ */}
+      {/* ═══ STAGE: LOADING (3 dtk) — layout baru ═══ */}
       {stage === 'loading' && (
         <div
           key="loading"
-          className="absolute inset-x-0 top-0 h-[70%] z-10 flex flex-col items-center justify-center px-10 rise-in"
+          className="absolute inset-x-0 top-0 h-[70%] z-10 flex flex-col items-center justify-center px-8 rise-in"
           style={{ animationDelay: '200ms' }}
         >
+          {/* logo di chip navy (pakem background terang) */}
+          <div className="w-16 h-16 rounded-[18px] bg-navy flex items-center justify-center shadow-md shadow-navy/25">
+            <Logo className="w-10 h-10" />
+          </div>
+
+          {/* sapaan bergantian */}
           <p
             key={greetIndex}
-            className="greet-swap text-2xl font-extrabold text-navy tracking-tight text-center min-h-[36px]"
+            className="greet-swap text-2xl font-extrabold text-navy tracking-tight text-center min-h-[36px] mt-5"
           >
             {GREETINGS[greetIndex]}
           </p>
 
-          <div className="w-52 h-1.5 bg-mist rounded-full mt-6 overflow-hidden">
-            <div className="h-full bg-navy rounded-full animate-progress" />
+          {/* progress bar + persen real-time */}
+          <div className="w-full max-w-[264px] mt-6">
+            <div className="h-2 bg-mist rounded-full overflow-hidden">
+              <div
+                className="h-full bg-navy rounded-full transition-[width] duration-100 ease-linear"
+                style={{ width: `${percent}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between mt-2">
+              <p className="text-[11px] font-semibold text-navy/50">
+                Menyiapkan pengalaman PKL-mu...
+              </p>
+              <p className="text-[11px] font-extrabold text-navy tabular-nums">{percent}%</p>
+            </div>
           </div>
 
-          <p className="text-[11px] font-semibold text-navy/50 mt-3">
-            Menyiapkan pengalaman PKL-mu...
-          </p>
+          {/* steps fitur menyala berurutan */}
+          <div className="flex items-center gap-2 mt-6">
+            {STEPS.map(s => {
+              const active = percent >= s.at;
+              return (
+                <span
+                  key={s.label}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[10px] font-bold transition-all duration-300 ${
+                    active
+                      ? 'bg-navy border-navy text-white shadow-sm scale-105'
+                      : 'bg-white border-mist text-navy/40'
+                  }`}
+                >
+                  <s.icon className="w-3 h-3" /> {s.label}
+                </span>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -361,4 +408,4 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
       )}
     </div>
   );
-};2
+};
