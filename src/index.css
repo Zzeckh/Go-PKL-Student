@@ -42,7 +42,7 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
 
-  /* ✅ FIX 1: hapus outline focus default di SEMUA element */
+  /* hapus outline focus default + tap highlight (anti-glitch) */
   *,
   *::before,
   *::after {
@@ -51,7 +51,7 @@
   }
 }
 
-/* ✅ FIX 2: sembunyikan scrollbar di form login (tetap bisa scroll) */
+/* sembunyikan scrollbar tapi tetap bisa scroll */
 .scrollbar-none {
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -85,6 +85,13 @@
 .topo-anim-rev      { animation: blob-float 12s ease-in-out infinite alternate-reverse; }
 .topo-anim-slow     { animation: blob-float 14s ease-in-out infinite alternate; }
 .topo-anim-rev-slow { animation: blob-float 11s ease-in-out infinite alternate-reverse; }
+
+/* ─── Konten masuk dengan rise halus ─── */
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.rise-in { animation: rise-in 600ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 
 /* ─── Header masuk serempak dengan fluid mengembang ─── */
 @keyframes header-in {
@@ -141,3 +148,10 @@
   to   { opacity: 1; transform: scaleX(1); }
 }
 .splash-divider { animation: divider-grow 500ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* ─── Bottom nav slide-up saat dashboard muncul ─── */
+@keyframes nav-up {
+  from { opacity: 0; transform: translateY(120%); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.nav-in { animation: nav-up 700ms cubic-bezier(0.22, 1, 0.36, 1) 250ms both; }

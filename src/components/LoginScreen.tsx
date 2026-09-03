@@ -9,14 +9,15 @@ import { Logo } from './Logo';
 /* ⚠️ Sesuaikan dengan path asli di routes/authRoutes.js backend */
 const LOGIN_URL = '/api/auth/login';
 
-type Stage = 'splash' | 'loading' | 'start' | 'login';
+type Stage = 'splash' | 'loading' | 'start' | 'login' | 'exit';
 
 /* ── Posisi fluid per stage (±1/3 layar saat login/loading) ── */
 const FLUID_POS: Record<Stage, { top: string; bottom: string }> = {
-  splash:  { top: '0%',  bottom: '0%'  },
-  loading: { top: '70%', bottom: '0%'  },
-  start:   { top: '0%',  bottom: '0%'  },
-  login:   { top: '0%',  bottom: '70%' },
+  splash:  { top: '0%',   bottom: '0%'   },
+  loading: { top: '70%',  bottom: '0%'   },
+  start:   { top: '0%',   bottom: '0%'   },
+  login:   { top: '0%',   bottom: '70%'  },
+  exit:    { top: '100%', bottom: '-30%' },  // fluid meluncur ke bawah keluar layar
 };
 
 /* ── Sapaan multibahasa ── */
@@ -76,7 +77,8 @@ interface LoginScreenProps {
 }
 
 /* ══════════════════════════════════════════════════════
-   SPLASH (1,5s) → LOADING (3s) → START → LOGIN
+   SPLASH (1,5s) → LOADING (3s) → START → LOGIN → EXIT
+   exit = fluid meluncur ke bawah, lalu dashboard muncul
    ══════════════════════════════════════════════════════ */
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
   const [stage, setStage] = useState<Stage>('splash');
@@ -144,13 +146,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
       const user = data?.user || data;
       if (!token) throw new Error('Respons login tidak valid.');
 
-      if (user?.role && user.role !== 'student') {
+      const ALLOWED_ROLES = ['student', 'intern'];
+      if (user?.role && !ALLOWED_ROLES.includes(user.role)) {
         throw new Error('Aplikasi ini khusus role siswa. Role lain silakan pakai aplikasi web.');
       }
 
       setToken(token, remember);
       saveUser(user, remember);
-      onSuccess(user);
+
+      /* ✅ transisi keluar: fluid meluncur ke bawah (900ms),
+         baru dashboard di-mount */
+      goTo('exit');
+      window.setTimeout(() => onSuccess(user), 900);
     } catch (err: any) {
       setError(err?.message || 'Terjadi kesalahan, coba lagi.');
     } finally {
@@ -344,6 +351,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
     loading: loadingView,
     start: startView,
     login: loginView,
+    exit: null,   // stage exit: form sudah lenyap, fluid meluncur keluar
   };
 
   return (
@@ -378,12 +386,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
         </svg>
       </div>
 
-      {/* ═══ HEADER PERSISTEN (start ↔ login) ═══ */}
-      {(stage === 'start' || stage === 'login') && (
-        <div className="absolute inset-x-0 top-0 z-20 h-[92px] pointer-events-none header-in">
+      {/* ═══ HEADER PERSISTEN (start ↔ login ↔ exit) ═══
+          saat exit: header fade-out sambil ikut turun */}
+      {(stage === 'start' || stage === 'login' || stage === 'exit') && (
+        <div className={`absolute inset-x-0 top-0 z-20 h-[92px] pointer-events-none header-in transition-all duration-500 ${
+          stage === 'exit' ? 'opacity-0 translate-y-6' : 'opacity-100 translate-y-0'
+        }`}>
           <div
             className="absolute top-6 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
-            style={{ left: stage === 'login' ? 'calc(100% - 68px)' : '24px' }}
+            style={{ left: (stage === 'login' || stage === 'exit') ? 'calc(100% - 68px)' : '24px' }}
           >
             <Logo className="w-11 h-11 drop-shadow-md" />
           </div>
@@ -401,7 +412,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
             <button
               onClick={() => goTo('start')}
               className={`relative pointer-events-auto flex items-center gap-2 h-11 px-5 rounded-full bg-white/10 border border-white/15 text-white text-xs font-bold hover:bg-white/20 active:scale-95 transition-all duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)] whitespace-nowrap ${
-                stage === 'login'
+                stage === 'login' || stage === 'exit'
                   ? 'opacity-100 translate-x-0 scale-100'
                   : 'opacity-0 -translate-x-4 scale-90 pointer-events-none'
               }`}
