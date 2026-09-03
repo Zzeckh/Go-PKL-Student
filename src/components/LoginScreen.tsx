@@ -144,7 +144,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
       const user = data?.user || data;
       if (!token) throw new Error('Respons login tidak valid.');
 
-      if (user?.role && user.role !== 'intern') {
+      if (user?.role && user.role !== 'student') {
         throw new Error('Aplikasi ini khusus role siswa. Role lain silakan pakai aplikasi web.');
       }
 
