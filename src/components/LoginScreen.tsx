@@ -4,6 +4,7 @@ import {
   MapPin, BookOpen, FileCheck,
 } from 'lucide-react';
 import { setToken, saveUser } from '../utils/auth';
+import { Logo } from './Logo';
 
 /* ⚠️ Sesuaikan dengan path asli di routes/authRoutes.js backend */
 const LOGIN_URL = '/api/auth/login';
@@ -159,14 +160,12 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
             className="absolute top-6 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
             style={{ left: stage === 'login' ? 'calc(100% - 68px)' : '24px' }}
           >
-            <div className="w-11 h-11 rounded-[12px] bg-white/15 border border-white/20 flex items-center justify-center text-white font-extrabold text-base shadow-md">
-              Go
-            </div>
+            <Logo onDark className="w-11 h-11 drop-shadow-md" />
           </div>
 
           {/* slot KIRI: nama ↔ tombol kembali (morph di tempat) */}
           <div className="absolute top-6 left-6 h-11 flex items-center">
-            {/* nama: saat start bergeser kanan (ml visual 56px), saat login mundur sambil fade */}
+            {/* nama */}
             <div className={`absolute left-0 h-11 flex flex-col justify-center transition-all duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)] ${
               stage === 'start'
                 ? 'opacity-100 translate-x-14 scale-100'
@@ -176,7 +175,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
               <p className="text-white/60 text-[11px] font-semibold whitespace-nowrap">Portal Magang Siswa</p>
             </div>
 
-            {/* tombol kembali: muncul di kiri yang sama */}
+            {/* tombol kembali */}
             <button
               onClick={() => setStage('start')}
               className={`relative pointer-events-auto flex items-center gap-2 h-11 px-5 rounded-full bg-white/10 border border-white/15 text-white text-xs font-bold hover:bg-white/20 active:scale-95 transition-all duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)] whitespace-nowrap ${
@@ -195,11 +194,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
       {stage === 'splash' && (
         <div key="splash" className="absolute inset-0 z-10 flex flex-col items-center justify-center rise-in">
           <div className="relative">
-            <div className="absolute inset-0 rounded-[28px] bg-white/10 scale-[1.4]" />
-            <div className="absolute inset-0 rounded-[28px] bg-white/10 scale-[1.2]" />
-            <div className="relative w-20 h-20 rounded-[24px] bg-white/15 border border-white/25 flex items-center justify-center text-white font-extrabold text-3xl shadow-lg">
-              Go
-            </div>
+            <div className="absolute inset-0 rounded-full bg-white/10 scale-[1.5]" />
+            <Logo onDark className="relative w-24 h-24 drop-shadow-lg" />
           </div>
           <h1 className="text-white text-4xl font-extrabold mt-7 tracking-tight">Go-PKL</h1>
           <div className="w-10 h-[3px] bg-white/40 rounded-full mt-3" />
@@ -237,7 +233,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
       {/* ═══ STAGE: START ═══ */}
       {stage === 'start' && (
         <div key="start" className="absolute inset-0 z-10 flex flex-col rise-in">
-          {/* tengah: headline baru + chips */}
+          {/* tengah: headline + chips */}
           <div className="flex-1 flex flex-col items-center justify-center px-8 text-center pt-20">
             <h1 className="text-white text-4xl font-extrabold tracking-tight">
               Ayo Mulai!
