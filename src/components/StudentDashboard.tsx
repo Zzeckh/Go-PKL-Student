@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { BottomNav, TABS, type TabId } from './BottomNav';
 import { TopoPattern, WAVE_TOP_FILL, WAVE_BOTTOM_FILL } from './LoginScreen';
+import { AbsensiView } from './Absensi';
 
 interface StudentDashboardProps {
   user: any;
@@ -95,7 +96,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
   const firstName = fullName.split(' ')[0];
   const initials = fullName
     .split(' ')
-    .map(w => w[0])
+    .map((w: string) => w[0])
     .slice(0, 2)
     .join('')
     .toUpperCase();
@@ -169,14 +170,13 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
           </button>
         </div>
 
-        {/* Total Kehadiran + tombol Absen (ganti badge lama) */}
+        {/* Total Kehadiran + tombol Absen */}
         <div className="relative mt-6">
           <p className="text-white/60 text-[11px] font-semibold">Total Kehadiran</p>
           <div className="flex items-end gap-2 mt-1">
             <p className="text-white text-4xl font-extrabold tabular-nums tracking-tight">18</p>
             <span className="text-white/60 text-sm font-bold mb-1">hari</span>
 
-            {/* ✅ tombol Absen → langsung ke halaman absensi */}
             <button
               onClick={() => handleTabChange('absensi')}
               className="mb-1 ml-auto shrink-0 bg-white text-navy rounded-full px-5 py-2.5 text-[11px] font-extrabold flex items-center gap-1.5 shadow-md shadow-black/20 active:scale-95 transition-all"
@@ -191,6 +191,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
       <div className="relative -mt-8 flex-1 bg-white rounded-t-[32px] px-5 pt-6 pb-32 shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
         {tab === 'home' ? (
           <HomeView name={firstName} />
+        ) : tab === 'absensi' ? (
+          <AbsensiView />
         ) : (
           <PlaceholderView tab={tab} onLogout={onLogout} />
         )}
@@ -290,11 +292,11 @@ const HomeView: React.FC<{ name: string }> = ({ name }) => (
       </div>
     </div>
 
-    {/* 2) stats mini */}
+    {/* 2) stats mini — semua COUNT sederhana dari API nanti */}
     <div className="rise-in grid grid-cols-3 gap-3 mt-4" style={{ animationDelay: '300ms' }}>
       <div className="bg-white rounded-[16px] border border-mist/60 shadow-sm p-3 text-center">
-        <p className="text-lg font-extrabold text-navy tabular-nums">96%</p>
-        <p className="text-[9px] font-bold text-navy/50 mt-0.5 uppercase tracking-wide">Tepat Waktu</p>
+        <p className="text-lg font-extrabold text-navy tabular-nums">32</p>
+        <p className="text-[9px] font-bold text-navy/50 mt-0.5 uppercase tracking-wide">Logbook</p>
       </div>
       <div className="bg-white rounded-[16px] border border-mist/60 shadow-sm p-3 text-center">
         <p className="text-lg font-extrabold text-navy tabular-nums">3</p>
