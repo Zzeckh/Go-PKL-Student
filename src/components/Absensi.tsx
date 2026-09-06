@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   LogIn, LogOut, MapPin, RefreshCw, Loader2, CheckCircle2, AlertCircle, History,
-  Camera, Building2, XCircle, CalendarDays,
+  Camera, Building2, XCircle, CalendarDays, X,
 } from 'lucide-react';
 
 const URL_CHECK_IN = '/api/attendance/check-in';
@@ -42,9 +42,6 @@ const fmtTime = (d: Date) =>
 const fmtDate = (d: Date) =>
   d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
 
-/* ══════════════════════════════════════════════════════
-   ABSENSI — FULL PUTIH (tanpa hero navy)
-   ══════════════════════════════════════════════════════ */
 export const AbsensiView: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -56,6 +53,8 @@ export const AbsensiView: React.FC = () => {
   const [checkIn, setCheckIn] = useState<string | null>(null);
   const [checkOut, setCheckOut] = useState<string | null>(null);
   const [busy, setBusy] = useState<null | 'in' | 'out'>(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [closingHistory, setClosingHistory] = useState(false);
 
   const startCam = async () => {
     setCamError(null);
@@ -149,9 +148,25 @@ export const AbsensiView: React.FC = () => {
     }
   };
 
+  const closeHistory = () => {
+    setClosingHistory(true);
+    setTimeout(() => {
+      setShowHistory(false);
+      setClosingHistory(false);
+    }, 300);
+  };
+
+  const handleHistory = () => {
+    if (showHistory) {
+      closeHistory();
+    } else {
+      setShowHistory(true);
+    }
+  };
+
   return (
-    <>
-      {/* ═══ HEADER PUTIH ═══ */}
+    <div className="relative">
+      {/* ═══ HEADER ═══ */}
       <div className="rise-in flex items-end justify-between">
         <div>
           <p className="text-[10px] font-semibold text-navy/50 flex items-center gap-1.5">
@@ -159,28 +174,42 @@ export const AbsensiView: React.FC = () => {
           </p>
           <h1 className="text-2xl font-extrabold text-navy tracking-tight mt-1">Absensi</h1>
         </div>
-        <span className={`px-2.5 py-1 rounded-full border text-[9px] font-bold flex items-center gap-1.5 ${
-          inFence ? 'bg-navy/10 border-navy/10 text-navy' : 'bg-mist/60 border-mist/60 text-navy/60'
-        }`}>
-          <MapPin className="w-3 h-3" />
-          {gps.status === 'loading' && 'Mencari lokasi...'}
-          {gps.status === 'error' && 'GPS tidak tersedia'}
-          {gps.status === 'ok' && (inFence ? `Di area · ${dist} m` : `Luar area · ${dist} m`)}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`px-2.5 py-1 rounded-full border text-[9px] font-bold flex items-center gap-1.5 ${
+            inFence ? 'bg-navy/10 border-navy/10 text-navy' : 'bg-mist/60 border-mist/60 text-navy/60'
+          }`}>
+            <MapPin className="w-3 h-3" />
+            {gps.status === 'loading' && 'Mencari...'}
+            {gps.status === 'error' && 'GPS error'}
+            {gps.status === 'ok' && (inFence ? `Di area · ${dist}m` : `Luar area · ${dist}m`)}
+          </span>
+          <button
+            onClick={handleHistory}
+            aria-label="Riwayat"
+            className={`w-9 h-9 rounded-full border flex items-center justify-center active:scale-90 transition-all ${
+              showHistory
+                ? 'bg-navy text-white border-navy'
+                : 'bg-white border-mist/60 text-navy/60'
+            }`}
+          >
+            {showHistory ? <X className="w-4 h-4" /> : <History className="w-4 h-4" />}
+          </button>
+        </div>
       </div>
 
-      {/* 1) KAMERA SELFIE */}
-      <div className="rise-in bg-white rounded-[20px] border border-mist/60 shadow-sm p-4 mt-4" style={{ animationDelay: '100ms' }}>
-        <div className="flex items-center justify-between">
-          <p className="text-[11px] font-extrabold text-navy">Verifikasi Selfie</p>
+      {/* ═══ 1) CARD VERIFIKASI & ABSENSI (GABUNGAN) ═══ */}
+      <div className="rise-in bg-white rounded-[20px] border border-mist/60 shadow-sm p-4 mt-5" style={{ animationDelay: '100ms' }}>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[11px] font-extrabold text-navy">Verifikasi & Absensi</p>
           <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold ${
-            selfie ? 'bg-navy/10 text-navy' : 'bg-mist text-navy/60'
+            allReq ? 'bg-navy/10 text-navy' : 'bg-mist text-navy/60'
           }`}>
-            {selfie ? 'Foto terambil' : 'Belum foto'}
+            {allReq ? 'Siap absen' : 'Lengkapi syarat'}
           </span>
         </div>
 
-        <div className="relative mt-3 rounded-[16px] overflow-hidden bg-navy aspect-square">
+        {/* kamera selfie */}
+        <div className="relative rounded-[16px] overflow-hidden bg-navy aspect-[4/3]">
           {selfie ? (
             <img src={selfie} alt="Selfie" className="w-full h-full object-cover -scale-x-100" />
           ) : (
@@ -200,61 +229,24 @@ export const AbsensiView: React.FC = () => {
 
           <div className="absolute inset-x-0 bottom-3 flex justify-center">
             {selfie ? (
-              <button onClick={() => setSelfie(null)} className="px-4 py-2 rounded-full bg-white text-navy text-[10px] font-extrabold shadow-md active:scale-95 transition-all">
-                Ulangi Foto
+              <button onClick={() => setSelfie(null)} className="px-4 py-2 rounded-full bg-white text-navy text-[10px] font-extrabold shadow-md active:scale-95 transition-all flex items-center gap-1.5">
+                <RefreshCw className="w-3 h-3" /> Ulangi Foto
               </button>
             ) : (
               <button onClick={capture} disabled={!camOn} aria-label="Ambil foto"
-                className="w-12 h-12 rounded-full bg-white border-4 border-navy/20 shadow-md active:scale-90 transition-all disabled:opacity-40" />
+                className="w-14 h-14 rounded-full bg-white border-4 border-navy/20 shadow-md active:scale-90 transition-all disabled:opacity-40 flex items-center justify-center">
+                <Camera className="w-6 h-6 text-navy" />
+              </button>
             )}
           </div>
         </div>
 
         <p className="mt-2 text-[9px] font-semibold text-navy/40">
-          Foto hanya untuk verifikasi syarat absen — tidak disimpan ke server.
+          Foto hanya untuk verifikasi — tidak disimpan ke server.
         </p>
-      </div>
 
-      {/* 2) CARD TEMPAT PKL */}
-      <div className="rise-in bg-white rounded-[20px] border border-mist/60 shadow-sm p-4 mt-4" style={{ animationDelay: '200ms' }}>
-        <p className="text-[11px] font-extrabold text-navy">Tempat PKL</p>
-
-        <div className="mt-3 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-[12px] bg-navy text-white flex items-center justify-center shrink-0">
-            <Building2 className="w-4 h-4" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-xs font-bold text-navy truncate">{OFFICE.name}</p>
-            <p className="text-[10px] font-semibold text-navy/50 truncate">{OFFICE.address}</p>
-          </div>
-        </div>
-
-        <div className="mt-3 flex items-center justify-between rounded-[12px] bg-shell border border-mist/60 px-3 py-2.5">
-          <span className="flex items-center gap-1.5 text-[10px] font-semibold text-navy/60">
-            <MapPin className="w-3 h-3" />
-            {gps.status === 'loading' && 'Mendeteksi lokasimu...'}
-            {gps.status === 'error' && 'GPS tidak tersedia'}
-            {gps.status === 'ok' && `Jarakmu: ${dist} m`}
-          </span>
-          <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold ${
-            inFence ? 'bg-navy/10 text-navy' : 'bg-mist text-navy/60'
-          }`}>
-            {inFence ? 'Di dalam' : 'Di luar'}
-          </span>
-        </div>
-
-        {gps.status === 'error' && (
-          <button onClick={locate} className="mt-2 flex items-center gap-1 text-[10px] font-bold text-steel active:scale-95 transition-all">
-            <RefreshCw className="w-3 h-3" /> Perbarui lokasi
-          </button>
-        )}
-      </div>
-
-      {/* 3) CARD ABSENSI */}
-      <div className="rise-in bg-white rounded-[20px] border border-mist/60 shadow-sm p-4 mt-4" style={{ animationDelay: '300ms' }}>
-        <p className="text-[11px] font-extrabold text-navy">Absensi</p>
-
-        <div className="mt-3 flex flex-col gap-2">
+        {/* checklist syarat */}
+        <div className="mt-4 pt-4 border-t border-mist/60 flex flex-col gap-2">
           <div className="flex items-center gap-2.5">
             {reqSelfie ? <CheckCircle2 className="w-4 h-4 text-navy" /> : <XCircle className="w-4 h-4 text-navy/30" />}
             <p className={`text-[10px] font-bold ${reqSelfie ? 'text-navy' : 'text-navy/40'}`}>Foto selfie terambil</p>
@@ -265,6 +257,7 @@ export const AbsensiView: React.FC = () => {
           </div>
         </div>
 
+        {/* tombol absen */}
         <div className="grid grid-cols-2 gap-3 mt-4">
           <button
             onClick={() => doAbsen('in')}
@@ -297,33 +290,67 @@ export const AbsensiView: React.FC = () => {
         )}
       </div>
 
-      {/* 4) RIWAYAT (2 terakhir) */}
-      <div className="rise-in bg-white rounded-[20px] border border-mist/60 shadow-sm p-4 mt-4" style={{ animationDelay: '400ms' }}>
-        <div className="flex items-center justify-between">
-          <p className="text-[11px] font-extrabold text-navy">Riwayat Kehadiran</p>
-          <span className="flex items-center gap-1 text-[9px] font-bold text-navy/50">
-            <History className="w-3 h-3" /> 2 terakhir
+      {/* ═══ 2) CARD TEMPAT PKL ═══ */}
+      <div className="rise-in bg-white rounded-[20px] border border-mist/60 shadow-sm p-4 mt-4" style={{ animationDelay: '200ms' }}>
+        <p className="text-[11px] font-extrabold text-navy">Tempat PKL</p>
+
+        <div className="mt-3 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-[12px] bg-navy text-white flex items-center justify-center shrink-0">
+            <Building2 className="w-4 h-4" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-navy truncate">{OFFICE.name}</p>
+            <p className="text-[10px] font-semibold text-navy/50 truncate">{OFFICE.address}</p>
+          </div>
+        </div>
+
+        <div className="mt-3 flex items-center justify-between rounded-[12px] bg-shell border border-mist/60 px-3 py-2.5">
+          <span className="flex items-center gap-1.5 text-[10px] font-semibold text-navy/60">
+            <MapPin className="w-3 h-3" />
+            {gps.status === 'loading' && 'Mendeteksi lokasimu...'}
+            {gps.status === 'error' && 'GPS tidak tersedia'}
+            {gps.status === 'ok' && `Jarakmu: ${dist} m`}
+          </span>
+          <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold ${
+            inFence ? 'bg-navy/10 text-navy' : 'bg-mist text-navy/60'
+          }`}>
+            {inFence ? 'Di dalam' : 'Di luar'}
           </span>
         </div>
-        <div className="mt-3 flex flex-col">
-          {HISTORY.slice(0, 2).map((h, i) => (
-            <div key={h.date} className={`flex items-center gap-3 py-2.5 ${i > 0 ? 'border-t border-mist/60' : ''}`}>
-              <div className="w-9 h-9 rounded-[12px] bg-shell border border-mist/60 flex items-center justify-center shrink-0">
-                <span className="text-[9px] font-extrabold text-navy tabular-nums">{h.date}</span>
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-bold text-navy tabular-nums">{h.in} – {h.out}</p>
-                <p className="text-[9px] font-semibold text-navy/50 mt-0.5">
-                  {h.status === 'Hadir' ? 'Hadir penuh' : 'Pengajuan izin disetujui'}
-                </p>
-              </div>
-              <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold ${
-                h.status === 'Hadir' ? 'bg-navy/10 text-navy' : 'bg-mist text-navy'
-              }`}>{h.status}</span>
-            </div>
-          ))}
-        </div>
       </div>
-    </>
+
+      {/* ═══ POPOVER RIWAYAT ═══ */}
+      {showHistory && (
+        <div className={`${closingHistory ? 'pop-out' : 'pop-in'} absolute right-0 top-[68px] z-40 w-72 bg-white rounded-[16px] border border-mist/60 shadow-lg shadow-navy/15 p-3`}>
+          <div className="flex items-center justify-between px-1">
+            <p className="text-[11px] font-extrabold text-navy">Riwayat Kehadiran</p>
+            <span className="px-1.5 py-0.5 rounded-full bg-shell border border-mist/60 text-[8px] font-bold text-navy/60">
+              {HISTORY.length} terakhir
+            </span>
+          </div>
+
+          <div className="mt-2 flex flex-col">
+            {HISTORY.map((h, i) => (
+              <div key={h.date} className={`flex items-center gap-2.5 px-1 py-2.5 ${i > 0 ? 'border-t border-mist/60' : ''}`}>
+                <div className="w-8 h-8 rounded-[10px] bg-shell border border-mist/60 flex items-center justify-center shrink-0">
+                  <span className="text-[9px] font-extrabold text-navy tabular-nums">{h.date}</span>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold text-navy tabular-nums">{h.in} – {h.out}</p>
+                  <p className="text-[9px] font-semibold text-navy/50 mt-0.5">
+                    {h.status === 'Hadir' ? 'Hadir penuh' : 'Izin disetujui'}
+                  </p>
+                </div>
+                <span className={`px-2 py-0.5 rounded-full text-[8px] font-extrabold ${
+                  h.status === 'Hadir' ? 'bg-navy/10 text-navy' : 'bg-mist text-navy'
+                }`}>
+                  {h.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
