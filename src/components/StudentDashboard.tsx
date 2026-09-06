@@ -5,6 +5,7 @@ import {
 import { BottomNav, TABS, type TabId } from './BottomNav';
 import { TopoPattern, WAVE_TOP_FILL, WAVE_BOTTOM_FILL } from './LoginScreen';
 import { AbsensiView } from './Absensi';
+import { LogbookView } from './Logbook';
 
 interface StudentDashboardProps {
   user: any;
@@ -64,7 +65,7 @@ const FluidSweep: React.FC = () => {
 
 /* ══════════════════════════════════════════════════════
    DASHBOARD SISWA
-   home ↔ halaman lain dengan transisi exit-up + sheet naik
+   absensi → transisi ATAS · logbook (dll) → transisi BAWAH
    ══════════════════════════════════════════════════════ */
 export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) => {
   const [tab, setTab] = useState<TabId>('home');
@@ -72,6 +73,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
   const [showNotif, setShowNotif] = useState(false);
   const [closing, setClosing] = useState(false);
   const [exiting, setExiting] = useState(false);
+  const [exitDir, setExitDir] = useState<'up' | 'down'>('up');
 
   const fullName = user?.name || 'Siswa';
   const firstName = fullName.split(' ')[0];
@@ -87,12 +89,12 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
     else { setHasUnread(false); setShowNotif(true); }
   };
 
-  /* ── ganti tab: dari home → animasi exit dulu; selain itu langsung ── */
   const handleTabChange = (t: TabId) => {
     if (showNotif) closeNotif();
     if (t === tab || exiting) return;
 
     if (tab === 'home') {
+      setExitDir(t === 'absensi' ? 'up' : 'down');
       setExiting(true);
       setTimeout(() => {
         setTab(t);
@@ -107,11 +109,11 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
     <div className="relative min-h-screen bg-white flex flex-col">
       <FluidSweep />
 
-      {/* ═══ HOME (juga dipakai sebagai lapisan exit) ═══ */}
+      {/* ═══ HOME (lapisan exit) ═══ */}
       {(tab === 'home' || exiting) && (
-        <div className="flex-1 flex flex-col">
-          {/* hero navy — terbang ke atas saat exit */}
-          <div className={`relative bg-navy px-5 pt-6 pb-16 shrink-0 ${exiting ? 'exit-up' : 'rise-in'}`}>
+        <div className={`flex-1 flex flex-col ${exiting && exitDir === 'down' ? 'exit-down' : ''}`}>
+          {/* hero navy */}
+          <div className={`relative bg-navy px-5 pt-6 pb-16 shrink-0 ${exiting && exitDir === 'up' ? 'exit-up' : 'rise-in'}`}>
             <div className="absolute inset-0 overflow-hidden"><TopoPattern /></div>
 
             <div className="relative flex items-center justify-between">
@@ -154,8 +156,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
             </div>
           </div>
 
-          {/* sheet putih — naik jadi background saat exit, isinya fade */}
-          <div className={`relative -mt-8 flex-1 bg-white rounded-t-[32px] px-5 pt-6 pb-32 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] ${exiting ? 'sheet-become-bg' : ''}`}>
+          {/* sheet putih */}
+          <div className={`relative -mt-8 flex-1 bg-white rounded-t-[32px] px-5 pt-6 pb-32 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] ${exiting && exitDir === 'up' ? 'sheet-become-bg' : ''}`}>
             <div className={exiting ? 'content-fade' : ''}>
               <HomeView name={firstName} />
             </div>
@@ -163,11 +165,13 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
         </div>
       )}
 
-      {/* ═══ HALAMAN LAIN — full putih, mount SEKALI (animasi tidak dobel) ═══ */}
+      {/* ═══ HALAMAN LAIN ═══ */}
       {!exiting && tab !== 'home' && (
         <div className="flex-1 overflow-y-auto px-5 pt-6 pb-32">
           {tab === 'absensi' ? (
             <AbsensiView />
+          ) : tab === 'logbook' ? (
+            <LogbookView />
           ) : (
             <PlaceholderView tab={tab} onLogout={onLogout} />
           )}
