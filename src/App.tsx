@@ -5,13 +5,24 @@ import { readUser, clearAuth } from './utils/auth.ts';
 
 export default function App() {
   const [user, setUser] = useState<any>(() => readUser());
+  /* in-memory: TRUE hanya setelah klik logout di sesi ini.
+     Refresh halaman → state ini hilang → splash main lagi. */
+  const [loggedOut, setLoggedOut] = useState(false);
 
   const handleLogout = () => {
     clearAuth();
     setUser(null);
+    setLoggedOut(true);
   };
 
-  if (!user) return <LoginScreen onSuccess={setUser} />;
+  const handleSuccess = (u: any) => {
+    setUser(u);
+    setLoggedOut(false);
+  };
+
+  if (!user) {
+    return <LoginScreen skipIntro={loggedOut} onSuccess={handleSuccess} />;
+  }
 
   return <StudentDashboard user={user} onLogout={handleLogout} />;
 }

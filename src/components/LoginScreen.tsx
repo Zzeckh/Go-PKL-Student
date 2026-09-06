@@ -3,7 +3,7 @@ import {
   ArrowRight, ArrowLeft, Mail, Lock, Eye, EyeOff, AlertCircle, Loader2, Check, LogIn,
   MapPin, BookOpen, FileCheck,
 } from 'lucide-react';
-import { setToken, saveUser, setOnboardingDone, isOnboardingDone } from '../utils/auth';
+import { setToken, saveUser } from '../utils/auth';
 import { Logo } from './Logo';
 
 const LOGIN_URL = '/api/auth/login';
@@ -61,14 +61,13 @@ export const TopoPattern: React.FC = () => (
 
 interface LoginScreenProps {
   onSuccess: (user: any) => void;
+  /* true = habis logout dalam app → langsung login (tanpa splash/loading)
+     false = fresh load / refresh → intro penuh splash → loading → start */
+  skipIntro?: boolean;
 }
 
-export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
-  /* ── stage awal ditentukan flag onboarding ──
-     - sudah pernah login → langsung ke 'login'
-     - belum pernah      → mulai dari 'splash' (urutan onboarding penuh) */
-  const initialStage: Stage = isOnboardingDone() ? 'login' : 'splash';
-  const [stage, setStage] = useState<Stage>(initialStage);
+export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, skipIntro = false }) => {
+  const [stage, setStage] = useState<Stage>(skipIntro ? 'login' : 'splash');
   const [prevStage, setPrevStage] = useState<Stage | null>(null);
   const exitTimer = useRef<number | null>(null);
 
@@ -138,9 +137,6 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
 
       setToken(token, remember);
       saveUser(user, remember);
-
-      /* ── Tandai onboarding selesai: logout berikutnya skip splash/loading ── */
-      setOnboardingDone();
 
       onSuccess(user);
     } catch (err: any) {
@@ -270,9 +266,8 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
     login: loginView,
   };
 
-  /* ── delay animasi layer login:
-     - 900ms kalau datang dari 'start' (fluid sedang turun)
-     - 0ms kalau cold start langsung ke login (setelah logout) ── */
+  /* delay layer login: 900ms hanya kalau datang dari 'start' (fluid turun);
+     0ms kalau cold-start langsung login (habis logout) */
   const loginDelay = stage === 'login' && prevStage === 'start' ? '900ms' : '0ms';
 
   return (

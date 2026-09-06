@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
-  LogOut, Bell, X, BookOpen, FileCheck, MapPin, Building2, Clock,
+  Bell, X, BookOpen, FileCheck, MapPin, Building2, Clock,
 } from 'lucide-react';
 import { BottomNav, TABS, type TabId } from './BottomNav';
 import { TopoPattern, WAVE_TOP_FILL, WAVE_BOTTOM_FILL } from './LoginScreen';
 import { AbsensiView } from './Absensi';
 import { LogbookView } from './Logbook';
 import { IzinView } from './Izin';
+import { ProfileView } from './Profile';
 
 interface StudentDashboardProps {
   user: any;
@@ -42,9 +43,8 @@ const NOTIFS: Notif[] = [
 ];
 const SHOWN_NOTIFS = NOTIFS.slice(0, 4);
 
-/* ── timing sweep: 1400ms total, ganti page saat tertutup penuh ── */
 const SWEEP_TOTAL = 1400;
-const SWITCH_AT = 700; // jendela tertutup: 588–812ms
+const SWITCH_AT = 700;
 
 const FluidSweep: React.FC = () => {
   const [gone, setGone] = useState(false);
@@ -68,17 +68,11 @@ const FluidSweep: React.FC = () => {
   );
 };
 
-/* ══════════════════════════════════════════════════════
-   PAGE SWEEP — fluid + center choreography 5 lapis
-   ══════════════════════════════════════════════════════ */
 const PageSweep: React.FC<{ icon: React.ElementType; label: string }> = ({ icon: Icon, label }) => (
   <div className="page-sweep fixed inset-0 z-40 pointer-events-none">
-    {/* badan fluid */}
     <div className="absolute inset-0 bg-navy">
       <div className="absolute inset-0 overflow-hidden"><TopoPattern /></div>
     </div>
-
-    {/* tepi gelombang */}
     <svg className="block absolute left-0 w-full h-[90px] top-[calc(100%-8px)]" viewBox="0 0 1440 190" preserveAspectRatio="none">
       <path d={WAVE_TOP_FILL} fill="var(--theme-navy)" />
     </svg>
@@ -86,9 +80,7 @@ const PageSweep: React.FC<{ icon: React.ElementType; label: string }> = ({ icon:
       <path d={WAVE_BOTTOM_FILL} fill="var(--theme-navy)" />
     </svg>
 
-    {/* ═══ CENTER CHOREOGRAPHY ═══ */}
     <div className="absolute inset-0 flex flex-col items-center justify-center">
-      {/* ikon + ripple rings sonar */}
       <div className="relative w-20 h-20">
         <span className="sweep-ring absolute inset-0 rounded-full border-2 border-white/30" />
         <span className="sweep-ring-2 absolute inset-0 rounded-full border-2 border-white/20" />
@@ -96,26 +88,13 @@ const PageSweep: React.FC<{ icon: React.ElementType; label: string }> = ({ icon:
           <Icon className="w-9 h-9" />
         </div>
       </div>
-
-      {/* caption kecil */}
-      <p className="sweep-cap mt-6 text-[10px] font-bold uppercase tracking-[0.25em] text-white/50">
-        Menuju
-      </p>
-
-      {/* nama halaman */}
-      <h2 className="sweep-name mt-1.5 text-3xl font-extrabold text-white tracking-tight">
-        {label}
-      </h2>
-
-      {/* divider tumbuh */}
+      <p className="sweep-cap mt-6 text-[10px] font-bold uppercase tracking-[0.25em] text-white/50">Menuju</p>
+      <h2 className="sweep-name mt-1.5 text-3xl font-extrabold text-white tracking-tight">{label}</h2>
       <div className="sweep-div w-10 h-[3px] bg-white/40 rounded-full mt-4" />
     </div>
   </div>
 );
 
-/* ══════════════════════════════════════════════════════
-   DASHBOARD SISWA — fluid sweep antar halaman
-   ══════════════════════════════════════════════════════ */
 export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) => {
   const [tab, setTab] = useState<TabId>('home');
   const [pending, setPending] = useState<TabId | null>(null);
@@ -158,11 +137,9 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
     <div className="relative min-h-screen bg-white flex flex-col">
       <FluidSweep />
 
-      {/* ═══ AREA PAGE ═══ */}
       <div className="flex-1 flex flex-col">
         {tab === 'home' ? (
           <>
-            {/* hero navy */}
             <div className="rise-in relative bg-navy px-5 pt-6 pb-16 shrink-0">
               <div className="absolute inset-0 overflow-hidden"><TopoPattern /></div>
 
@@ -206,7 +183,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
               </div>
             </div>
 
-            {/* white sheet */}
             <div className="relative -mt-8 flex-1 bg-white rounded-t-[32px] px-5 pt-6 pb-32 shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
               <HomeView name={firstName} />
             </div>
@@ -219,17 +195,17 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
               <LogbookView />
             ) : tab === 'izin' ? (
               <IzinView />
+            ) : tab === 'profil' ? (
+              <ProfileView user={user} onLogout={onLogout} />
             ) : (
-              <PlaceholderView tab={tab} onLogout={onLogout} />
+              <PlaceholderView tab={tab} />
             )}
           </div>
         )}
       </div>
 
-      {/* ═══ GELOMBANG TRANSISI ═══ */}
       {cover && pendingMeta && <PageSweep icon={pendingMeta.icon} label={pendingMeta.label} />}
 
-      {/* ── Bottom nav (langsung sorot tujuan) ── */}
       <BottomNav className="nav-in" active={pending ?? tab} onChange={handleTabChange} />
 
       {showNotif && <NotifPop closing={closing} />}
@@ -326,25 +302,15 @@ const HomeView: React.FC<{ name: string }> = ({ name }) => (
   </>
 );
 
-const PlaceholderView: React.FC<{ tab: TabId; onLogout: () => void }> = ({ tab, onLogout }) => {
+/* placeholder untuk tab lain yang belum dibangun (profil sudah ada sendiri) */
+const PlaceholderView: React.FC<{ tab: TabId }> = ({ tab }) => {
   const meta = TABS.find(t => t.id === tab)!;
   const Icon = meta.icon;
   return (
-    <>
-      <div className="rise-in bg-shell rounded-[20px] border border-mist/60 p-8 flex flex-col items-center text-center">
-        <div className="w-16 h-16 rounded-[18px] bg-navy text-white flex items-center justify-center shadow-md shadow-navy/25"><Icon className="w-7 h-7" /></div>
-        <h2 className="text-lg font-extrabold text-navy mt-4">{meta.label}</h2>
-        <p className="text-xs font-semibold text-navy/50 mt-1 leading-relaxed">Halaman ini segera dibangun.</p>
-      </div>
-      {tab === 'profil' && (
-        <button
-          onClick={onLogout}
-          className="rise-in mt-4 w-full bg-navy text-white rounded-full py-3.5 text-sm font-bold flex items-center justify-center gap-2 shadow-md shadow-navy/25 active:scale-[0.98] transition-all"
-          style={{ animationDelay: '150ms' }}
-        >
-          <LogOut className="w-4 h-4" /> Keluar
-        </button>
-      )}
-    </>
+    <div className="rise-in bg-shell rounded-[20px] border border-mist/60 p-8 flex flex-col items-center text-center">
+      <div className="w-16 h-16 rounded-[18px] bg-navy text-white flex items-center justify-center shadow-md shadow-navy/25"><Icon className="w-7 h-7" /></div>
+      <h2 className="text-lg font-extrabold text-navy mt-4">{meta.label}</h2>
+      <p className="text-xs font-semibold text-navy/50 mt-1 leading-relaxed">Halaman ini segera dibangun.</p>
+    </div>
   );
 };
