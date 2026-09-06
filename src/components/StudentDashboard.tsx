@@ -6,6 +6,7 @@ import { BottomNav, TABS, type TabId } from './BottomNav';
 import { TopoPattern, WAVE_TOP_FILL, WAVE_BOTTOM_FILL } from './LoginScreen';
 import { AbsensiView } from './Absensi';
 import { LogbookView } from './Logbook';
+import { IzinView } from './Izin';
 
 interface StudentDashboardProps {
   user: any;
@@ -63,10 +64,6 @@ const FluidSweep: React.FC = () => {
   );
 };
 
-/* ══════════════════════════════════════════════════════
-   DASHBOARD SISWA
-   absensi → transisi ATAS · logbook (dll) → transisi BAWAH
-   ══════════════════════════════════════════════════════ */
 export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) => {
   const [tab, setTab] = useState<TabId>('home');
   const [hasUnread, setHasUnread] = useState(true);
@@ -94,7 +91,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
     if (t === tab || exiting) return;
 
     if (tab === 'home') {
-      setExitDir(t === 'absensi' ? 'up' : 'down');
+      /* absensi & izin → transisi ATAS (punya hero fluid) · logbook → BAWAH */
+      setExitDir(t === 'absensi' || t === 'izin' ? 'up' : 'down');
       setExiting(true);
       setTimeout(() => {
         setTab(t);
@@ -112,7 +110,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
       {/* ═══ HOME (lapisan exit) ═══ */}
       {(tab === 'home' || exiting) && (
         <div className={`flex-1 flex flex-col ${exiting && exitDir === 'down' ? 'exit-down' : ''}`}>
-          {/* hero navy */}
           <div className={`relative bg-navy px-5 pt-6 pb-16 shrink-0 ${exiting && exitDir === 'up' ? 'exit-up' : 'rise-in'}`}>
             <div className="absolute inset-0 overflow-hidden"><TopoPattern /></div>
 
@@ -156,7 +153,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
             </div>
           </div>
 
-          {/* sheet putih */}
           <div className={`relative -mt-8 flex-1 bg-white rounded-t-[32px] px-5 pt-6 pb-32 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] ${exiting && exitDir === 'up' ? 'sheet-become-bg' : ''}`}>
             <div className={exiting ? 'content-fade' : ''}>
               <HomeView name={firstName} />
@@ -172,6 +168,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
             <AbsensiView />
           ) : tab === 'logbook' ? (
             <LogbookView />
+          ) : tab === 'izin' ? (
+            <IzinView />
           ) : (
             <PlaceholderView tab={tab} onLogout={onLogout} />
           )}
