@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
-  BookOpen, Clock, CheckCircle2, Loader2, Plus, Pencil, X, CalendarDays, FileText,
+  BookOpen, Clock, CheckCircle2, Loader2, Plus, Pencil, X, CalendarDays, FileText, ChevronDown,
 } from 'lucide-react';
 
 type LogStatus = 'disetujui' | 'pending' | 'revisi';
@@ -31,6 +31,8 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: 'revisi',    label: 'Revisi' },
 ];
 
+const PAGE_SIZE = 3; // render maksimal 3 dulu biar ringan
+
 const fmtDM = (iso: string) => {
   const [, m, d] = iso.split('-');
   return `${d}/${m}`;
@@ -48,16 +50,16 @@ const StatusChip: React.FC<{ status: LogStatus }> = ({ status }) => (
   </span>
 );
 
-/* ── Tile stats putih ── */
+/* ── Tile stats — SEMUA navy solid, seragam ── */
 const StatTile: React.FC<{ icon: React.ElementType; value: string | number; label: string }> = ({ icon: Icon, value, label }) => (
-  <div className="rounded-[16px] bg-white border border-mist/60 shadow-sm p-3.5">
+  <div className="rounded-[16px] bg-navy p-3.5 shadow-md shadow-navy/20">
     <div className="flex items-center justify-between">
-      <span className="w-8 h-8 rounded-[10px] bg-navy/10 text-navy flex items-center justify-center">
+      <span className="w-8 h-8 rounded-[10px] bg-white/15 text-white flex items-center justify-center">
         <Icon className="w-4 h-4" />
       </span>
-      <p className="text-xl font-extrabold text-navy tabular-nums">{value}</p>
+      <p className="text-xl font-extrabold text-white tabular-nums">{value}</p>
     </div>
-    <p className="text-[9px] font-bold text-navy/50 uppercase tracking-wide mt-2">{label}</p>
+    <p className="text-[9px] font-bold text-white/60 uppercase tracking-wide mt-2">{label}</p>
   </div>
 );
 
@@ -67,11 +69,17 @@ const StatTile: React.FC<{ icon: React.ElementType; value: string | number; labe
 export const LogbookView: React.FC = () => {
   const [entries, setEntries] = useState<LogbookEntry[]>(INITIAL_LOGBOOKS);
   const [filter, setFilter] = useState<Filter>('semua');
+  const [limit, setLimit] = useState(PAGE_SIZE);
 
   const [sheet, setSheet] = useState<null | { mode: 'add' } | { mode: 'edit'; entry: LogbookEntry }>(null);
   const [closingSheet, setClosingSheet] = useState(false);
   const [form, setForm] = useState({ iso: '', title: '', hours: '' });
   const dateRef = useRef<HTMLInputElement | null>(null);
+
+  /* ganti filter → reset pagination biar ringan lagi */
+  useEffect(() => {
+    setLimit(PAGE_SIZE);
+  }, [filter]);
 
   const total = entries.length;
   const totalHours = entries.reduce((s, e) => s + e.hours, 0);
@@ -79,6 +87,8 @@ export const LogbookView: React.FC = () => {
   const pending = entries.filter(e => e.status === 'pending').length;
 
   const shown = filter === 'semua' ? entries : entries.filter(e => e.status === filter);
+  const visible = shown.slice(0, limit);
+  const extended = limit > PAGE_SIZE;
 
   const openAdd = () => {
     setForm({ iso: '', title: '', hours: '' });
@@ -135,22 +145,12 @@ export const LogbookView: React.FC = () => {
         <h1 className="text-2xl font-extrabold text-navy tracking-tight mt-1">Logbook</h1>
       </div>
 
-      {/* ═══ 1) STATS — tile 2×2, satu aksen navy ═══ */}
+      {/* ═══ 1) STATS — 4 tile navy seragam ═══ */}
       <div className="fall-in grid grid-cols-2 gap-3 mt-5" style={{ animationDelay: '100ms' }}>
-        {/* tile aksen */}
-        <div className="rounded-[16px] bg-navy p-3.5 shadow-md shadow-navy/20">
-          <div className="flex items-center justify-between">
-            <span className="w-8 h-8 rounded-[10px] bg-white/15 text-white flex items-center justify-center">
-              <BookOpen className="w-4 h-4" />
-            </span>
-            <p className="text-xl font-extrabold text-white tabular-nums">{total}</p>
-          </div>
-          <p className="text-[9px] font-bold text-white/60 uppercase tracking-wide mt-2">Total Logbook</p>
-        </div>
-
-        <StatTile icon={Clock} value={fmtHours(totalHours)} label="Total Jam" />
-        <StatTile icon={CheckCircle2} value={approved} label="Disetujui" />
-        <StatTile icon={Loader2} value={pending} label="Pending" />
+        <StatTile icon={BookOpen}     value={total}                  label="Total Logbook" />
+        <StatTile icon={Clock}        value={fmtHours(totalHours)}   label="Total Jam" />
+        <StatTile icon={CheckCircle2} value={approved}               label="Disetujui" />
+        <StatTile icon={Loader2}      value={pending}                label="Pending" />
       </div>
 
       {/* ═══ 2) FILTER — full width 4 kolom ═══ */}
@@ -170,24 +170,25 @@ export const LogbookView: React.FC = () => {
         ))}
       </div>
 
-      {/* ═══ 3) LIST LOGBOOK ═══ */}
+      {/* ═══ 3) LIST LOGBOOK — render maks 3 ═══ */}
       <div key={filter} className="flex flex-col gap-3 mt-4">
-        {shown.length === 0 && (
+        {visible.length === 0 && (
           <div className="fall-in bg-white rounded-[20px] border border-mist/60 p-8 text-center" style={{ animationDelay: '250ms' }}>
             <FileText className="w-6 h-6 text-navy/30 mx-auto" />
             <p className="text-[11px] font-bold text-navy/40 mt-2">Belum ada logbook di filter ini.</p>
           </div>
         )}
 
-        {shown.map((e, i) => (
+        {visible.map((e, i) => (
           <div
             key={e.id}
             className="fall-in bg-white rounded-[20px] border border-mist/60 shadow-sm p-4"
             style={{ animationDelay: `${250 + i * 70}ms` }}
           >
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-[12px] bg-shell border border-mist/60 flex items-center justify-center shrink-0">
-                <span className="text-[9px] font-extrabold text-navy tabular-nums">{fmtDM(e.iso)}</span>
+              {/* chip tanggal — navy/putih seperti ikon lain */}
+              <div className="w-10 h-10 rounded-[12px] bg-navy text-white flex items-center justify-center shrink-0">
+                <span className="text-[9px] font-extrabold tabular-nums">{fmtDM(e.iso)}</span>
               </div>
 
               <div className="min-w-0 flex-1">
@@ -216,6 +217,18 @@ export const LogbookView: React.FC = () => {
             </div>
           </div>
         ))}
+
+        {/* tombol show more / sembunyikan */}
+        {shown.length > PAGE_SIZE && (
+          <button
+            onClick={() => setLimit(l => (l === PAGE_SIZE ? shown.length : PAGE_SIZE))}
+            className="fall-in w-full bg-white border border-mist/60 rounded-full py-3 text-[10px] font-extrabold text-navy/70 flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all"
+            style={{ animationDelay: '450ms' }}
+          >
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${extended ? 'rotate-180' : ''}`} />
+            {extended ? 'Sembunyikan' : `Tampilkan Lebih Banyak (${shown.length - PAGE_SIZE} lagi)`}
+          </button>
+        )}
       </div>
 
       {/* ═══ FAB TAMBAH ═══ */}
@@ -254,7 +267,7 @@ export const LogbookView: React.FC = () => {
               </p>
             )}
 
-            {/* tanggal — ikon tema, native indicator disembunyikan */}
+            {/* tanggal */}
             <div className="mt-4">
               <label className="text-[10px] font-bold text-navy/60 uppercase tracking-wide block mb-1">Tanggal</label>
               <div className="relative">
