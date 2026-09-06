@@ -50,7 +50,7 @@ const StatusChip: React.FC<{ status: LogStatus }> = ({ status }) => (
 );
 
 /* ══════════════════════════════════════════════════════
-   LOGBOOK VIEW — stats + filter + list + FAB + sheet form
+   LOGBOOK VIEW — stats + filter full-width + list + FAB
    ══════════════════════════════════════════════════════ */
 export const LogbookView: React.FC = () => {
   const [entries, setEntries] = useState<LogbookEntry[]>(INITIAL_LOGBOOKS);
@@ -66,7 +66,6 @@ export const LogbookView: React.FC = () => {
   const totalHours = entries.reduce((s, e) => s + e.hours, 0);
   const approved = entries.filter(e => e.status === 'disetujui').length;
   const pending = entries.filter(e => e.status === 'pending').length;
-  const revisiCount = entries.filter(e => e.status === 'revisi').length;
 
   const shown = filter === 'semua' ? entries : entries.filter(e => e.status === filter);
 
@@ -110,22 +109,12 @@ export const LogbookView: React.FC = () => {
 
   return (
     <div className="relative">
-      {/* ═══ HEADER ═══ */}
-      <div className="fall-in flex items-end justify-between">
-        <div>
-          <p className="text-[10px] font-semibold text-navy/50 flex items-center gap-1.5">
-            <CalendarDays className="w-3 h-3" /> Laporan kegiatan magang
-          </p>
-          <h1 className="text-2xl font-extrabold text-navy tracking-tight mt-1">Logbook</h1>
-        </div>
-        {revisiCount > 0 && (
-          <button
-            onClick={() => setFilter('revisi')}
-            className="px-2.5 py-1 rounded-full bg-navy text-white text-[9px] font-extrabold flex items-center gap-1.5 active:scale-95 transition-all"
-          >
-            <Pencil className="w-3 h-3" /> {revisiCount} revisi
-          </button>
-        )}
+      {/* ═══ HEADER (bersih, tanpa chip revisi) ═══ */}
+      <div className="fall-in">
+        <p className="text-[10px] font-semibold text-navy/50 flex items-center gap-1.5">
+          <CalendarDays className="w-3 h-3" /> Laporan kegiatan magang
+        </p>
+        <h1 className="text-2xl font-extrabold text-navy tracking-tight mt-1">Logbook</h1>
       </div>
 
       {/* ═══ 1) CARD STATS (4 metrik) ═══ */}
@@ -173,13 +162,13 @@ export const LogbookView: React.FC = () => {
         </div>
       </div>
 
-      {/* ═══ 2) FILTER CHIPS ═══ */}
-      <div className="fall-in flex gap-2 mt-4 overflow-x-auto" style={{ animationDelay: '200ms' }}>
+      {/* ═══ 2) FILTER — FULL WIDTH, 4 kolom sama rata ═══ */}
+      <div className="fall-in grid grid-cols-4 gap-2 mt-4" style={{ animationDelay: '200ms' }}>
         {FILTERS.map(f => (
           <button
             key={f.id}
             onClick={() => setFilter(f.id)}
-            className={`shrink-0 px-4 py-2 rounded-full text-[10px] font-extrabold transition-all active:scale-95 ${
+            className={`w-full py-2.5 rounded-full text-[10px] font-extrabold transition-all active:scale-95 ${
               filter === f.id
                 ? 'bg-navy text-white shadow-md shadow-navy/25'
                 : 'bg-white text-navy/60 border border-mist/60'
