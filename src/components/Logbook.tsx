@@ -7,7 +7,7 @@ type LogStatus = 'disetujui' | 'pending' | 'revisi';
 
 type LogbookEntry = {
   id: number;
-  iso: string;      // yyyy-mm-dd (nanti dari API)
+  iso: string;
   title: string;
   hours: number;
   status: LogStatus;
@@ -31,7 +31,7 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: 'revisi',    label: 'Revisi' },
 ];
 
-const PAGE_SIZE = 3; // render maksimal 3 dulu biar ringan
+const PAGE_SIZE = 3;
 
 const fmtDM = (iso: string) => {
   const [, m, d] = iso.split('-');
@@ -50,7 +50,6 @@ const StatusChip: React.FC<{ status: LogStatus }> = ({ status }) => (
   </span>
 );
 
-/* ── Tile stats — SEMUA navy solid, seragam ── */
 const StatTile: React.FC<{ icon: React.ElementType; value: string | number; label: string }> = ({ icon: Icon, value, label }) => (
   <div className="rounded-[16px] bg-navy p-3.5 shadow-md shadow-navy/20">
     <div className="flex items-center justify-between">
@@ -63,9 +62,6 @@ const StatTile: React.FC<{ icon: React.ElementType; value: string | number; labe
   </div>
 );
 
-/* ══════════════════════════════════════════════════════
-   LOGBOOK VIEW
-   ══════════════════════════════════════════════════════ */
 export const LogbookView: React.FC = () => {
   const [entries, setEntries] = useState<LogbookEntry[]>(INITIAL_LOGBOOKS);
   const [filter, setFilter] = useState<Filter>('semua');
@@ -76,7 +72,6 @@ export const LogbookView: React.FC = () => {
   const [form, setForm] = useState({ iso: '', title: '', hours: '' });
   const dateRef = useRef<HTMLInputElement | null>(null);
 
-  /* ganti filter → reset pagination biar ringan lagi */
   useEffect(() => {
     setLimit(PAGE_SIZE);
   }, [filter]);
@@ -126,7 +121,6 @@ export const LogbookView: React.FC = () => {
     closeSheet();
   };
 
-  /* ikon tanggal tema → buka picker native */
   const openDatePicker = () => {
     try {
       (dateRef.current as any)?.showPicker?.();
@@ -138,23 +132,23 @@ export const LogbookView: React.FC = () => {
   return (
     <div className="relative">
       {/* ═══ HEADER ═══ */}
-      <div className="fall-in">
+      <div className="rise-in">
         <p className="text-[10px] font-semibold text-navy/50 flex items-center gap-1.5">
           <CalendarDays className="w-3 h-3" /> Laporan kegiatan magang
         </p>
         <h1 className="text-2xl font-extrabold text-navy tracking-tight mt-1">Logbook</h1>
       </div>
 
-      {/* ═══ 1) STATS — 4 tile navy seragam ═══ */}
-      <div className="fall-in grid grid-cols-2 gap-3 mt-5" style={{ animationDelay: '100ms' }}>
-        <StatTile icon={BookOpen}     value={total}                  label="Total Logbook" />
-        <StatTile icon={Clock}        value={fmtHours(totalHours)}   label="Total Jam" />
-        <StatTile icon={CheckCircle2} value={approved}               label="Disetujui" />
-        <StatTile icon={Loader2}      value={pending}                label="Pending" />
+      {/* ═══ 1) STATS ═══ */}
+      <div className="rise-in grid grid-cols-2 gap-3 mt-5" style={{ animationDelay: '100ms' }}>
+        <StatTile icon={BookOpen}     value={total}                label="Total Logbook" />
+        <StatTile icon={Clock}        value={fmtHours(totalHours)} label="Total Jam" />
+        <StatTile icon={CheckCircle2} value={approved}             label="Disetujui" />
+        <StatTile icon={Loader2}      value={pending}              label="Pending" />
       </div>
 
-      {/* ═══ 2) FILTER — full width 4 kolom ═══ */}
-      <div className="fall-in grid grid-cols-4 gap-2 mt-4" style={{ animationDelay: '200ms' }}>
+      {/* ═══ 2) FILTER ═══ */}
+      <div className="rise-in grid grid-cols-4 gap-2 mt-4" style={{ animationDelay: '200ms' }}>
         {FILTERS.map(f => (
           <button
             key={f.id}
@@ -170,10 +164,10 @@ export const LogbookView: React.FC = () => {
         ))}
       </div>
 
-      {/* ═══ 3) LIST LOGBOOK — render maks 3 ═══ */}
+      {/* ═══ 3) LIST ═══ */}
       <div key={filter} className="flex flex-col gap-3 mt-4">
         {visible.length === 0 && (
-          <div className="fall-in bg-white rounded-[20px] border border-mist/60 p-8 text-center" style={{ animationDelay: '250ms' }}>
+          <div className="rise-in bg-white rounded-[20px] border border-mist/60 p-8 text-center" style={{ animationDelay: '250ms' }}>
             <FileText className="w-6 h-6 text-navy/30 mx-auto" />
             <p className="text-[11px] font-bold text-navy/40 mt-2">Belum ada logbook di filter ini.</p>
           </div>
@@ -182,11 +176,10 @@ export const LogbookView: React.FC = () => {
         {visible.map((e, i) => (
           <div
             key={e.id}
-            className="fall-in bg-white rounded-[20px] border border-mist/60 shadow-sm p-4"
+            className="rise-in bg-white rounded-[20px] border border-mist/60 shadow-sm p-4"
             style={{ animationDelay: `${250 + i * 70}ms` }}
           >
             <div className="flex items-start gap-3">
-              {/* chip tanggal — navy/putih seperti ikon lain */}
               <div className="w-10 h-10 rounded-[12px] bg-navy text-white flex items-center justify-center shrink-0">
                 <span className="text-[9px] font-extrabold tabular-nums">{fmtDM(e.iso)}</span>
               </div>
@@ -218,11 +211,10 @@ export const LogbookView: React.FC = () => {
           </div>
         ))}
 
-        {/* tombol show more / sembunyikan */}
         {shown.length > PAGE_SIZE && (
           <button
             onClick={() => setLimit(l => (l === PAGE_SIZE ? shown.length : PAGE_SIZE))}
-            className="fall-in w-full bg-white border border-mist/60 rounded-full py-3 text-[10px] font-extrabold text-navy/70 flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all"
+            className="rise-in w-full bg-white border border-mist/60 rounded-full py-3 text-[10px] font-extrabold text-navy/70 flex items-center justify-center gap-1.5 active:scale-[0.98] transition-all"
             style={{ animationDelay: '450ms' }}
           >
             <ChevronDown className={`w-3.5 h-3.5 transition-transform ${extended ? 'rotate-180' : ''}`} />
@@ -231,11 +223,11 @@ export const LogbookView: React.FC = () => {
         )}
       </div>
 
-      {/* ═══ FAB TAMBAH ═══ */}
+      {/* ═══ FAB ═══ */}
       <button
         onClick={openAdd}
         aria-label="Tambah logbook"
-        className="fall-in fixed right-5 bottom-24 z-40 w-14 h-14 rounded-full bg-navy text-white shadow-lg shadow-navy/30 flex items-center justify-center active:scale-90 transition-all"
+        className="rise-in fixed right-5 bottom-24 z-40 w-14 h-14 rounded-full bg-navy text-white shadow-lg shadow-navy/30 flex items-center justify-center active:scale-90 transition-all"
         style={{ animationDelay: '400ms' }}
       >
         <Plus className="w-6 h-6" />
@@ -267,7 +259,6 @@ export const LogbookView: React.FC = () => {
               </p>
             )}
 
-            {/* tanggal */}
             <div className="mt-4">
               <label className="text-[10px] font-bold text-navy/60 uppercase tracking-wide block mb-1">Tanggal</label>
               <div className="relative">
@@ -289,7 +280,6 @@ export const LogbookView: React.FC = () => {
               </div>
             </div>
 
-            {/* kegiatan */}
             <div className="mt-3">
               <label className="text-[10px] font-bold text-navy/60 uppercase tracking-wide block mb-1">Kegiatan</label>
               <textarea
@@ -301,7 +291,6 @@ export const LogbookView: React.FC = () => {
               />
             </div>
 
-            {/* jam */}
             <div className="mt-3">
               <label className="text-[10px] font-bold text-navy/60 uppercase tracking-wide block mb-1">Durasi (jam)</label>
               <input

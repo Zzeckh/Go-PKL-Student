@@ -42,6 +42,10 @@ const NOTIFS: Notif[] = [
 ];
 const SHOWN_NOTIFS = NOTIFS.slice(0, 4);
 
+/* ── timing sweep: 1400ms total, ganti page saat tertutup penuh ── */
+const SWEEP_TOTAL = 1400;
+const SWITCH_AT = 700; // jendela tertutup: 588–812ms
+
 const FluidSweep: React.FC = () => {
   const [gone, setGone] = useState(false);
   useEffect(() => {
@@ -64,13 +68,62 @@ const FluidSweep: React.FC = () => {
   );
 };
 
+/* ══════════════════════════════════════════════════════
+   PAGE SWEEP — fluid + center choreography 5 lapis
+   ══════════════════════════════════════════════════════ */
+const PageSweep: React.FC<{ icon: React.ElementType; label: string }> = ({ icon: Icon, label }) => (
+  <div className="page-sweep fixed inset-0 z-40 pointer-events-none">
+    {/* badan fluid */}
+    <div className="absolute inset-0 bg-navy">
+      <div className="absolute inset-0 overflow-hidden"><TopoPattern /></div>
+    </div>
+
+    {/* tepi gelombang */}
+    <svg className="block absolute left-0 w-full h-[90px] top-[calc(100%-8px)]" viewBox="0 0 1440 190" preserveAspectRatio="none">
+      <path d={WAVE_TOP_FILL} fill="var(--theme-navy)" />
+    </svg>
+    <svg className="block absolute left-0 w-full h-[90px] bottom-[calc(100%-8px)]" viewBox="0 0 1440 190" preserveAspectRatio="none">
+      <path d={WAVE_BOTTOM_FILL} fill="var(--theme-navy)" />
+    </svg>
+
+    {/* ═══ CENTER CHOREOGRAPHY ═══ */}
+    <div className="absolute inset-0 flex flex-col items-center justify-center">
+      {/* ikon + ripple rings sonar */}
+      <div className="relative w-20 h-20">
+        <span className="sweep-ring absolute inset-0 rounded-full border-2 border-white/30" />
+        <span className="sweep-ring-2 absolute inset-0 rounded-full border-2 border-white/20" />
+        <div className="sweep-icon relative w-20 h-20 rounded-full bg-white/15 border border-white/25 flex items-center justify-center text-white shadow-lg shadow-black/25">
+          <Icon className="w-9 h-9" />
+        </div>
+      </div>
+
+      {/* caption kecil */}
+      <p className="sweep-cap mt-6 text-[10px] font-bold uppercase tracking-[0.25em] text-white/50">
+        Menuju
+      </p>
+
+      {/* nama halaman */}
+      <h2 className="sweep-name mt-1.5 text-3xl font-extrabold text-white tracking-tight">
+        {label}
+      </h2>
+
+      {/* divider tumbuh */}
+      <div className="sweep-div w-10 h-[3px] bg-white/40 rounded-full mt-4" />
+    </div>
+  </div>
+);
+
+/* ══════════════════════════════════════════════════════
+   DASHBOARD SISWA — fluid sweep antar halaman
+   ══════════════════════════════════════════════════════ */
 export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) => {
   const [tab, setTab] = useState<TabId>('home');
+  const [pending, setPending] = useState<TabId | null>(null);
+  const [cover, setCover] = useState(false);
+
   const [hasUnread, setHasUnread] = useState(true);
   const [showNotif, setShowNotif] = useState(false);
   const [closing, setClosing] = useState(false);
-  const [exiting, setExiting] = useState(false);
-  const [exitDir, setExitDir] = useState<'up' | 'down'>('up');
 
   const fullName = user?.name || 'Siswa';
   const firstName = fullName.split(' ')[0];
@@ -88,95 +141,96 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
 
   const handleTabChange = (t: TabId) => {
     if (showNotif) closeNotif();
-    if (t === tab || exiting) return;
+    if (t === tab || cover) return;
 
-    if (tab === 'home') {
-      /* absensi & izin → transisi ATAS (punya hero fluid) · logbook → BAWAH */
-      setExitDir(t === 'absensi' || t === 'izin' ? 'up' : 'down');
-      setExiting(true);
-      setTimeout(() => {
-        setTab(t);
-        setExiting(false);
-      }, 600);
-    } else {
-      setTab(t);
-    }
+    setPending(t);
+    setCover(true);
+    window.setTimeout(() => setTab(t), SWITCH_AT);
+    window.setTimeout(() => {
+      setCover(false);
+      setPending(null);
+    }, SWEEP_TOTAL);
   };
+
+  const pendingMeta = pending ? TABS.find(x => x.id === pending) : null;
 
   return (
     <div className="relative min-h-screen bg-white flex flex-col">
       <FluidSweep />
 
-      {/* ═══ HOME (lapisan exit) ═══ */}
-      {(tab === 'home' || exiting) && (
-        <div className={`flex-1 flex flex-col ${exiting && exitDir === 'down' ? 'exit-down' : ''}`}>
-          <div className={`relative bg-navy px-5 pt-6 pb-16 shrink-0 ${exiting && exitDir === 'up' ? 'exit-up' : 'rise-in'}`}>
-            <div className="absolute inset-0 overflow-hidden"><TopoPattern /></div>
+      {/* ═══ AREA PAGE ═══ */}
+      <div className="flex-1 flex flex-col">
+        {tab === 'home' ? (
+          <>
+            {/* hero navy */}
+            <div className="rise-in relative bg-navy px-5 pt-6 pb-16 shrink-0">
+              <div className="absolute inset-0 overflow-hidden"><TopoPattern /></div>
 
-            <div className="relative flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full bg-white/15 border border-white/20 flex items-center justify-center text-white text-sm font-extrabold">
-                  {initials}
+              <div className="relative flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-full bg-white/15 border border-white/20 flex items-center justify-center text-white text-sm font-extrabold">
+                    {initials}
+                  </div>
+                  <div>
+                    <p className="text-white/60 text-[11px] font-semibold">Halo,</p>
+                    <p className="text-white text-sm font-extrabold leading-tight">{firstName}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-white/60 text-[11px] font-semibold">Halo,</p>
-                  <p className="text-white text-sm font-extrabold leading-tight">{firstName}</p>
-                </div>
-              </div>
 
-              <button
-                onClick={handleBell}
-                aria-label="Notifikasi"
-                className={`relative w-10 h-10 rounded-full border flex items-center justify-center active:scale-90 transition-all ${
-                  showNotif ? 'bg-white text-navy border-white' : 'bg-white/10 border-white/15 text-white/70'
-                }`}
-              >
-                {showNotif ? <X className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
-                {hasUnread && !showNotif && (
-                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-navy" />
-                )}
-              </button>
-            </div>
-
-            <div className="relative mt-6">
-              <p className="text-white/60 text-[11px] font-semibold">Total Kehadiran</p>
-              <div className="flex items-end gap-2 mt-1">
-                <p className="text-white text-4xl font-extrabold tabular-nums tracking-tight">18</p>
-                <span className="text-white/60 text-sm font-bold mb-1">hari</span>
                 <button
-                  onClick={() => handleTabChange('absensi')}
-                  className="mb-1 ml-auto shrink-0 bg-white text-navy rounded-full px-5 py-2.5 text-[11px] font-extrabold flex items-center gap-1.5 shadow-md shadow-black/20 active:scale-95 transition-all"
+                  onClick={handleBell}
+                  aria-label="Notifikasi"
+                  className={`relative w-10 h-10 rounded-full border flex items-center justify-center active:scale-90 transition-all ${
+                    showNotif ? 'bg-white text-navy border-white' : 'bg-white/10 border-white/15 text-white/70'
+                  }`}
                 >
-                  <MapPin className="w-3.5 h-3.5" /> Absen
+                  {showNotif ? <X className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
+                  {hasUnread && !showNotif && (
+                    <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-navy" />
+                  )}
                 </button>
               </div>
-            </div>
-          </div>
 
-          <div className={`relative -mt-8 flex-1 bg-white rounded-t-[32px] px-5 pt-6 pb-32 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] ${exiting && exitDir === 'up' ? 'sheet-become-bg' : ''}`}>
-            <div className={exiting ? 'content-fade' : ''}>
+              <div className="relative mt-6">
+                <p className="text-white/60 text-[11px] font-semibold">Total Kehadiran</p>
+                <div className="flex items-end gap-2 mt-1">
+                  <p className="text-white text-4xl font-extrabold tabular-nums tracking-tight">18</p>
+                  <span className="text-white/60 text-sm font-bold mb-1">hari</span>
+                  <button
+                    onClick={() => handleTabChange('absensi')}
+                    className="mb-1 ml-auto shrink-0 bg-white text-navy rounded-full px-5 py-2.5 text-[11px] font-extrabold flex items-center gap-1.5 shadow-md shadow-black/20 active:scale-95 transition-all"
+                  >
+                    <MapPin className="w-3.5 h-3.5" /> Absen
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* white sheet */}
+            <div className="relative -mt-8 flex-1 bg-white rounded-t-[32px] px-5 pt-6 pb-32 shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
               <HomeView name={firstName} />
             </div>
+          </>
+        ) : (
+          <div className="flex-1 overflow-y-auto px-5 pt-6 pb-32">
+            {tab === 'absensi' ? (
+              <AbsensiView />
+            ) : tab === 'logbook' ? (
+              <LogbookView />
+            ) : tab === 'izin' ? (
+              <IzinView />
+            ) : (
+              <PlaceholderView tab={tab} onLogout={onLogout} />
+            )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* ═══ HALAMAN LAIN ═══ */}
-      {!exiting && tab !== 'home' && (
-        <div className="flex-1 overflow-y-auto px-5 pt-6 pb-32">
-          {tab === 'absensi' ? (
-            <AbsensiView />
-          ) : tab === 'logbook' ? (
-            <LogbookView />
-          ) : tab === 'izin' ? (
-            <IzinView />
-          ) : (
-            <PlaceholderView tab={tab} onLogout={onLogout} />
-          )}
-        </div>
-      )}
+      {/* ═══ GELOMBANG TRANSISI ═══ */}
+      {cover && pendingMeta && <PageSweep icon={pendingMeta.icon} label={pendingMeta.label} />}
 
-      <BottomNav className="nav-in" active={tab} onChange={handleTabChange} />
+      {/* ── Bottom nav (langsung sorot tujuan) ── */}
+      <BottomNav className="nav-in" active={pending ?? tab} onChange={handleTabChange} />
 
       {showNotif && <NotifPop closing={closing} />}
     </div>

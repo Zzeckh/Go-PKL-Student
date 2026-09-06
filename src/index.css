@@ -63,7 +63,7 @@ body::-webkit-scrollbar,
   height: 0;
 }
 
-/* ─── Ikon tanggal native disembunyikan (diganti ikon tema) ─── */
+/* ─── Ikon tanggal native disembunyikan ─── */
 input[type='date']::-webkit-calendar-picker-indicator {
   display: none;
 }
@@ -85,19 +85,70 @@ input[type='date']::-webkit-calendar-picker-indicator {
 .topo-anim-slow     { animation: blob-float 14s ease-in-out infinite alternate; }
 .topo-anim-rev-slow { animation: blob-float 11s ease-in-out infinite alternate-reverse; }
 
-/* ─── Konten masuk dari bawah ─── */
+/* ─── MASUK: konten naik dari bawah ─── */
 @keyframes rise-in {
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .rise-in { animation: rise-in 600ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 
-/* ─── Konten masuk dari ATAS ─── */
-@keyframes fall-in {
-  from { opacity: 0; transform: translateY(-16px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* ─── FLUID SWEEP ANTAR HALAMAN (1400ms — lebih bernapas) ─── */
+@keyframes page-sweep {
+  0%   { transform: translateY(-102%); }
+  42%  { transform: translateY(0); }
+  58%  { transform: translateY(0); }
+  100% { transform: translateY(102%); }
 }
-.fall-in { animation: fall-in 600ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.page-sweep {
+  animation: page-sweep 1400ms cubic-bezier(0.65, 0, 0.35, 1) both;
+  will-change: transform;
+}
+
+/* ─── SWEEP CENTER: choreography 5 lapis (1400ms) ─── */
+
+@keyframes sweep-icon {
+  0%, 20%  { opacity: 0; transform: scale(0.5) translateY(12px); }
+  36%      { opacity: 1; transform: scale(1.1) translateY(0); }
+  44%      { transform: scale(1); }
+  64%      { opacity: 1; transform: scale(1) translateY(0); }
+  80%, 100% { opacity: 0; transform: scale(0.9) translateY(-12px); }
+}
+.sweep-icon { animation: sweep-icon 1400ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes sweep-ring {
+  0%, 30%  { opacity: 0; transform: scale(0.6); }
+  42%      { opacity: 0.7; }
+  72%, 100% { opacity: 0; transform: scale(2); }
+}
+.sweep-ring { animation: sweep-ring 1400ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes sweep-ring-2 {
+  0%, 40%  { opacity: 0; transform: scale(0.6); }
+  52%      { opacity: 0.5; }
+  82%, 100% { opacity: 0; transform: scale(2.4); }
+}
+.sweep-ring-2 { animation: sweep-ring-2 1400ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes sweep-cap {
+  0%, 28%  { opacity: 0; transform: translateY(6px); }
+  40%, 64% { opacity: 1; transform: translateY(0); }
+  78%, 100% { opacity: 0; transform: translateY(-6px); }
+}
+.sweep-cap { animation: sweep-cap 1400ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes sweep-name {
+  0%, 32%  { opacity: 0; transform: scale(0.9) translateY(8px); }
+  46%, 64% { opacity: 1; transform: scale(1) translateY(0); }
+  80%, 100% { opacity: 0; transform: scale(0.95) translateY(-8px); }
+}
+.sweep-name { animation: sweep-name 1400ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes sweep-div {
+  0%, 38%  { opacity: 0; transform: scaleX(0); }
+  52%, 64% { opacity: 1; transform: scaleX(1); }
+  80%, 100% { opacity: 0; transform: scaleX(0.4); }
+}
+.sweep-div { animation: sweep-div 1400ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 
 /* ─── Header masuk serempak dengan fluid mengembang ─── */
 @keyframes header-in {
@@ -106,7 +157,7 @@ input[type='date']::-webkit-calendar-picker-indicator {
 }
 .header-in { animation: header-in 900ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 
-/* ─── CROSSFADE ANTAR STAGE ─── */
+/* ─── CROSSFADE ANTAR STAGE (onboarding) ─── */
 @keyframes stage-in {
   from { opacity: 0; transform: scale(0.985); }
   to   { opacity: 1; transform: scale(1); }
@@ -153,14 +204,14 @@ input[type='date']::-webkit-calendar-picker-indicator {
 }
 .splash-divider { animation: divider-grow 500ms cubic-bezier(0.22, 1, 0.36, 1) both; }
 
-/* ─── Bottom nav slide-up ─── */
+/* ─── Bottom nav slide-up saat dashboard muncul ─── */
 @keyframes nav-up {
   from { opacity: 0; transform: translateY(120%); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .nav-in { animation: nav-up 700ms cubic-bezier(0.22, 1, 0.36, 1) 250ms both; }
 
-/* ─── FLUID menyapu ke bawah saat masuk dashboard ─── */
+/* ─── FLUID menyapu ke bawah saat login → dashboard ─── */
 @keyframes fluid-sweep {
   from { transform: translateY(0); }
   to   { transform: translateY(145vh); }
@@ -177,7 +228,7 @@ input[type='date']::-webkit-calendar-picker-indicator {
   animation: bar-grow 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* ─── Popover notifikasi ─── */
+/* ─── Popover notifikasi / riwayat ─── */
 @keyframes pop-in {
   from { opacity: 0; transform: scale(0.9) translateY(-8px); }
   to   { opacity: 1; transform: scale(1) translateY(0); }
@@ -194,29 +245,6 @@ input[type='date']::-webkit-calendar-picker-indicator {
   transform-origin: top right;
   animation: pop-out 300ms cubic-bezier(0.4, 0, 1, 1) both;
 }
-
-/* ─── TRANSISI HALAMAN: arah ATAS (absensi) ─── */
-@keyframes exit-up {
-  from { opacity: 1; transform: translateY(0); }
-  to   { opacity: 0; transform: translateY(-120%); }
-}
-.exit-up { animation: exit-up 600ms cubic-bezier(0.4, 0, 1, 1) both; }
-
-@keyframes sheet-become-bg {
-  from { transform: translateY(0); border-radius: 32px 32px 0 0; }
-  to   { transform: translateY(-240px); border-radius: 0; }
-}
-.sheet-become-bg { animation: sheet-become-bg 600ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-
-@keyframes content-fade { to { opacity: 0; } }
-.content-fade { animation: content-fade 300ms ease both; }
-
-/* ─── TRANSISI HALAMAN: arah BAWAH (logbook) ─── */
-@keyframes exit-down {
-  from { opacity: 1; transform: translateY(0); }
-  to   { opacity: 0; transform: translateY(120%); }
-}
-.exit-down { animation: exit-down 600ms cubic-bezier(0.4, 0, 1, 1) both; }
 
 /* ─── Bottom-sheet form ─── */
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
