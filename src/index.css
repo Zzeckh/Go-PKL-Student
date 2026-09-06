@@ -50,16 +50,15 @@
   }
 }
 
-/* ─── SEMUA scrollbar disembunyikan (scroll tetap berfungsi) ───
-   berlaku global: body, container, form, list — di semua page */
+/* ─── SEMUA scrollbar disembunyikan (scroll tetap jalan) ─── */
 html, body, * {
-  scrollbar-width: none;          /* Firefox */
-  -ms-overflow-style: none;       /* IE/Edge lama */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 html::-webkit-scrollbar,
 body::-webkit-scrollbar,
 *::-webkit-scrollbar {
-  display: none;                  /* Chrome/Safari/WebView */
+  display: none;
   width: 0;
   height: 0;
 }
@@ -168,7 +167,7 @@ body::-webkit-scrollbar,
   animation: bar-grow 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* ─── Popover notifikasi: MASUK (dari ikon) ─── */
+/* ─── Popover notifikasi: MASUK ─── */
 @keyframes pop-in {
   from { opacity: 0; transform: scale(0.9) translateY(-8px); }
   to   { opacity: 1; transform: scale(1) translateY(0); }
@@ -178,7 +177,7 @@ body::-webkit-scrollbar,
   animation: pop-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* ─── Popover notifikasi: KELUAR (kebalikan persis pop-in) ─── */
+/* ─── Popover notifikasi: KELUAR (kebalikan pop-in) ─── */
 @keyframes pop-out {
   from { opacity: 1; transform: scale(1) translateY(0); }
   to   { opacity: 0; transform: scale(0.9) translateY(-8px); }
@@ -187,3 +186,23 @@ body::-webkit-scrollbar,
   transform-origin: top right;
   animation: pop-out 300ms cubic-bezier(0.4, 0, 1, 1) both;
 }
+
+/* ─── HERO dashboard terbang ke atas saat pindah halaman ─── */
+@keyframes exit-up {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-120%); }
+}
+.exit-up { animation: exit-up 600ms cubic-bezier(0.4, 0, 1, 1) both; }
+
+/* ─── SHEET putih naik jadi background utama ─── */
+@keyframes sheet-become-bg {
+  from { transform: translateY(0); border-radius: 32px 32px 0 0; }
+  to   { transform: translateY(-240px); border-radius: 0; }
+}
+.sheet-become-bg { animation: sheet-become-bg 600ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* ─── Isi sheet fade-out saat sheet jadi background ─── */
+@keyframes content-fade {
+  to { opacity: 0; }
+}
+.content-fade { animation: content-fade 300ms ease both; }
