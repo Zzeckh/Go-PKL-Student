@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   BookOpen, Clock, CheckCircle2, Loader2, Plus, Pencil, X, CalendarDays, FileText,
 } from 'lucide-react';
@@ -31,7 +31,6 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: 'revisi',    label: 'Revisi' },
 ];
 
-/* ── format tanggal dd/mm ── */
 const fmtDM = (iso: string) => {
   const [, m, d] = iso.split('-');
   return `${d}/${m}`;
@@ -49,19 +48,31 @@ const StatusChip: React.FC<{ status: LogStatus }> = ({ status }) => (
   </span>
 );
 
+/* ── Tile stats putih ── */
+const StatTile: React.FC<{ icon: React.ElementType; value: string | number; label: string }> = ({ icon: Icon, value, label }) => (
+  <div className="rounded-[16px] bg-white border border-mist/60 shadow-sm p-3.5">
+    <div className="flex items-center justify-between">
+      <span className="w-8 h-8 rounded-[10px] bg-navy/10 text-navy flex items-center justify-center">
+        <Icon className="w-4 h-4" />
+      </span>
+      <p className="text-xl font-extrabold text-navy tabular-nums">{value}</p>
+    </div>
+    <p className="text-[9px] font-bold text-navy/50 uppercase tracking-wide mt-2">{label}</p>
+  </div>
+);
+
 /* ══════════════════════════════════════════════════════
-   LOGBOOK VIEW — stats + filter full-width + list + FAB
+   LOGBOOK VIEW
    ══════════════════════════════════════════════════════ */
 export const LogbookView: React.FC = () => {
   const [entries, setEntries] = useState<LogbookEntry[]>(INITIAL_LOGBOOKS);
   const [filter, setFilter] = useState<Filter>('semua');
 
-  /* sheet form: add / edit */
   const [sheet, setSheet] = useState<null | { mode: 'add' } | { mode: 'edit'; entry: LogbookEntry }>(null);
   const [closingSheet, setClosingSheet] = useState(false);
   const [form, setForm] = useState({ iso: '', title: '', hours: '' });
+  const dateRef = useRef<HTMLInputElement | null>(null);
 
-  /* ── stats ── */
   const total = entries.length;
   const totalHours = entries.reduce((s, e) => s + e.hours, 0);
   const approved = entries.filter(e => e.status === 'disetujui').length;
@@ -69,7 +80,6 @@ export const LogbookView: React.FC = () => {
 
   const shown = filter === 'semua' ? entries : entries.filter(e => e.status === filter);
 
-  /* ── buka/tutup sheet ── */
   const openAdd = () => {
     setForm({ iso: '', title: '', hours: '' });
     setSheet({ mode: 'add' });
@@ -88,7 +98,6 @@ export const LogbookView: React.FC = () => {
     }, 300);
   };
 
-  /* ── simpan (nanti POST/PUT ke API) ── */
   const save = () => {
     if (!form.title.trim() || !form.hours) return;
     const hours = parseFloat(form.hours) || 0;
@@ -107,9 +116,18 @@ export const LogbookView: React.FC = () => {
     closeSheet();
   };
 
+  /* ikon tanggal tema → buka picker native */
+  const openDatePicker = () => {
+    try {
+      (dateRef.current as any)?.showPicker?.();
+    } catch {
+      dateRef.current?.focus();
+    }
+  };
+
   return (
     <div className="relative">
-      {/* ═══ HEADER (bersih, tanpa chip revisi) ═══ */}
+      {/* ═══ HEADER ═══ */}
       <div className="fall-in">
         <p className="text-[10px] font-semibold text-navy/50 flex items-center gap-1.5">
           <CalendarDays className="w-3 h-3" /> Laporan kegiatan magang
@@ -117,52 +135,25 @@ export const LogbookView: React.FC = () => {
         <h1 className="text-2xl font-extrabold text-navy tracking-tight mt-1">Logbook</h1>
       </div>
 
-      {/* ═══ 1) CARD STATS (4 metrik) ═══ */}
-      <div className="fall-in bg-white rounded-[20px] border border-mist/60 shadow-sm p-4 mt-5" style={{ animationDelay: '100ms' }}>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-[12px] bg-navy text-white flex items-center justify-center shrink-0">
+      {/* ═══ 1) STATS — tile 2×2, satu aksen navy ═══ */}
+      <div className="fall-in grid grid-cols-2 gap-3 mt-5" style={{ animationDelay: '100ms' }}>
+        {/* tile aksen */}
+        <div className="rounded-[16px] bg-navy p-3.5 shadow-md shadow-navy/20">
+          <div className="flex items-center justify-between">
+            <span className="w-8 h-8 rounded-[10px] bg-white/15 text-white flex items-center justify-center">
               <BookOpen className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-lg font-extrabold text-navy tabular-nums leading-tight">{total}</p>
-              <p className="text-[9px] font-bold text-navy/50 uppercase tracking-wide">Total Logbook</p>
-            </div>
+            </span>
+            <p className="text-xl font-extrabold text-white tabular-nums">{total}</p>
           </div>
-
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-[12px] bg-navy/10 text-navy flex items-center justify-center shrink-0">
-              <Clock className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-lg font-extrabold text-navy tabular-nums leading-tight">{fmtHours(totalHours)}</p>
-              <p className="text-[9px] font-bold text-navy/50 uppercase tracking-wide">Total Jam</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-[12px] bg-navy/10 text-navy flex items-center justify-center shrink-0">
-              <CheckCircle2 className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-lg font-extrabold text-navy tabular-nums leading-tight">{approved}</p>
-              <p className="text-[9px] font-bold text-navy/50 uppercase tracking-wide">Disetujui</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-[12px] bg-mist text-navy/60 flex items-center justify-center shrink-0">
-              <Loader2 className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-lg font-extrabold text-navy tabular-nums leading-tight">{pending}</p>
-              <p className="text-[9px] font-bold text-navy/50 uppercase tracking-wide">Pending</p>
-            </div>
-          </div>
+          <p className="text-[9px] font-bold text-white/60 uppercase tracking-wide mt-2">Total Logbook</p>
         </div>
+
+        <StatTile icon={Clock} value={fmtHours(totalHours)} label="Total Jam" />
+        <StatTile icon={CheckCircle2} value={approved} label="Disetujui" />
+        <StatTile icon={Loader2} value={pending} label="Pending" />
       </div>
 
-      {/* ═══ 2) FILTER — FULL WIDTH, 4 kolom sama rata ═══ */}
+      {/* ═══ 2) FILTER — full width 4 kolom ═══ */}
       <div className="fall-in grid grid-cols-4 gap-2 mt-4" style={{ animationDelay: '200ms' }}>
         {FILTERS.map(f => (
           <button
@@ -179,7 +170,7 @@ export const LogbookView: React.FC = () => {
         ))}
       </div>
 
-      {/* ═══ 3) LIST LOGBOOK (re-stagger saat filter ganti) ═══ */}
+      {/* ═══ 3) LIST LOGBOOK ═══ */}
       <div key={filter} className="flex flex-col gap-3 mt-4">
         {shown.length === 0 && (
           <div className="fall-in bg-white rounded-[20px] border border-mist/60 p-8 text-center" style={{ animationDelay: '250ms' }}>
@@ -227,7 +218,7 @@ export const LogbookView: React.FC = () => {
         ))}
       </div>
 
-      {/* ═══ FAB TAMBAH LOGBOOK ═══ */}
+      {/* ═══ FAB TAMBAH ═══ */}
       <button
         onClick={openAdd}
         aria-label="Tambah logbook"
@@ -237,7 +228,7 @@ export const LogbookView: React.FC = () => {
         <Plus className="w-6 h-6" />
       </button>
 
-      {/* ═══ BOTTOM-SHEET FORM (add / edit) ═══ */}
+      {/* ═══ BOTTOM-SHEET FORM ═══ */}
       {sheet && (
         <div className="fixed inset-0 z-50">
           <div
@@ -263,15 +254,26 @@ export const LogbookView: React.FC = () => {
               </p>
             )}
 
-            {/* tanggal */}
+            {/* tanggal — ikon tema, native indicator disembunyikan */}
             <div className="mt-4">
               <label className="text-[10px] font-bold text-navy/60 uppercase tracking-wide block mb-1">Tanggal</label>
-              <input
-                type="date"
-                value={form.iso}
-                onChange={e => setForm(f => ({ ...f, iso: e.target.value }))}
-                className="w-full bg-shell border border-mist/60 rounded-[12px] px-3 py-2.5 text-xs font-semibold text-navy"
-              />
+              <div className="relative">
+                <input
+                  ref={dateRef}
+                  type="date"
+                  value={form.iso}
+                  onChange={e => setForm(f => ({ ...f, iso: e.target.value }))}
+                  className="w-full bg-shell border border-mist/60 rounded-[12px] pl-3 pr-10 py-2.5 text-xs font-semibold text-navy"
+                />
+                <button
+                  type="button"
+                  onClick={openDatePicker}
+                  aria-label="Pilih tanggal"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-navy/60 active:scale-90 transition-all"
+                >
+                  <CalendarDays className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {/* kegiatan */}
