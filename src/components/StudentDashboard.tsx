@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Bell, X, BookOpen, FileCheck, MapPin, Building2, Clock,
+  Bell, X, BookOpen, FileCheck, MapPin, Building2, Clock, AlertCircle, RefreshCw,
 } from 'lucide-react';
 import { BottomNav, TABS, type TabId } from './BottomNav';
 import { TopoPattern, WAVE_TOP_FILL, WAVE_BOTTOM_FILL } from './LoginScreen';
@@ -8,22 +8,12 @@ import { AbsensiView } from './Absensi';
 import { LogbookView } from './Logbook';
 import { IzinView } from './Izin';
 import { ProfileView } from './Profile';
+import { dashboardService, type DashboardStats } from '../services/dashboard';
 
 interface StudentDashboardProps {
   user: any;
   onLogout: () => void;
 }
-
-const LOGBOOK_WEEK = [
-  { date: '10/02', count: 1 },
-  { date: '11/02', count: 2 },
-  { date: '12/02', count: 1 },
-  { date: '13/02', count: 3 },
-  { date: '14/02', count: 2 },
-  { date: '15/02', count: 0 },
-  { date: '16/02', count: 2, today: true },
-];
-const MAX_COUNT = Math.max(...LOGBOOK_WEEK.map(d => d.count));
 
 type Notif = {
   id: number;
@@ -104,6 +94,28 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
   const [showNotif, setShowNotif] = useState(false);
   const [closing, setClosing] = useState(false);
 
+  /* ── Statistik dashboard dari data logbook + absensi + izin ── */
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState<string | null>(null);
+
+  const loadStats = useCallback(async () => {
+    setStatsLoading(true);
+    setStatsError(null);
+    try {
+      const s = await dashboardService.getStats();
+      setStats(s);
+    } catch (err: any) {
+      setStatsError(err?.message || 'Gagal memuat statistik.');
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
+
   const fullName = user?.name || 'Siswa';
   const firstName = fullName.split(' ')[0];
   const initials = fullName.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase();
@@ -171,7 +183,9 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
               <div className="relative mt-6">
                 <p className="text-white/60 text-[11px] font-semibold">Total Kehadiran</p>
                 <div className="flex items-end gap-2 mt-1">
-                  <p className="text-white text-4xl font-extrabold tabular-nums tracking-tight">18</p>
+                  <p className="text-white text-4xl font-extrabold tabular-nums tracking-tight">
+                    {stats ? stats.attendanceCount : '–'}
+                  </p>
                   <span className="text-white/60 text-sm font-bold mb-1">hari</span>
                   <button
                     onClick={() => handleTabChange('absensi')}
@@ -184,13 +198,20 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
             </div>
 
             <div className="relative -mt-8 flex-1 bg-white rounded-t-[32px] px-5 pt-6 pb-32 shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
-              <HomeView name={firstName} />
+              <HomeView
+                name={firstName}
+                user={user}
+                stats={stats}
+                loading={statsLoading}
+                error={statsError}
+                onRetry={loadStats}
+              />
             </div>
           </>
         ) : (
           <div className="flex-1 overflow-y-auto px-5 pt-6 pb-32">
             {tab === 'absensi' ? (
-              <AbsensiView />
+              <AbsensiView user={user} />
             ) : tab === 'logbook' ? (
               <LogbookView />
             ) : tab === 'izin' ? (
@@ -240,67 +261,107 @@ const NotifPop: React.FC<{ closing: boolean }> = ({ closing }) => (
   </div>
 );
 
-const HomeView: React.FC<{ name: string }> = ({ name }) => (
-  <>
-    <div className="rise-in bg-navy rounded-[20px] p-4 shadow-md shadow-navy/20" style={{ animationDelay: '200ms' }}>
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-white/60 text-[10px] font-semibold">Progres Logbook · {name}</p>
-          <p className="text-white text-sm font-extrabold mt-0.5 tracking-tight">Minggu Ini</p>
-        </div>
-        <span className="shrink-0 px-2 py-1 rounded-full bg-white/10 border border-white/15 text-[9px] font-bold text-white/80 tabular-nums">32 / 42</span>
-      </div>
-      <div className="flex items-end justify-between gap-1.5 mt-4">
-        {LOGBOOK_WEEK.map((d, i) => {
-          const height = d.count === 0 ? 3 : Math.round((d.count / MAX_COUNT) * 56);
-          return (
-            <div key={d.date} className="flex-1 flex flex-col items-center">
-              <span className="text-[8px] font-bold text-white/60 tabular-nums h-3">{d.count > 0 ? d.count : ''}</span>
-              <div className="w-full h-14 flex items-end justify-center mt-0.5">
-                <div
-                  className={`bar-grow w-2.5 rounded-full ${d.today ? 'bg-white shadow-md shadow-black/20' : 'bg-white/35'}`}
-                  style={{ height: `${height}px`, animationDelay: `${300 + i * 60}ms` }}
-                />
-              </div>
-              <div className="w-full border-t border-white/10 mt-1 pt-1">
-                <p className={`text-center text-[8px] font-bold tabular-nums ${d.today ? 'text-white' : 'text-white/50'}`}>{d.date}</p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+/* ══════════════════════════════════════════════════════
+   HOME VIEW — chart mingguan + stats + info magang
+   Data dari dashboardService (logbook + absensi + izin)
+   ══════════════════════════════════════════════════════ */
+interface HomeViewProps {
+  name: string;
+  user: any;
+  stats: DashboardStats | null;
+  loading: boolean;
+  error: string | null;
+  onRetry: () => void;
+}
 
-    <div className="rise-in grid grid-cols-3 gap-3 mt-4" style={{ animationDelay: '300ms' }}>
-      <div className="bg-white rounded-[16px] border border-mist/60 shadow-sm p-3 text-center">
-        <p className="text-lg font-extrabold text-navy tabular-nums">32</p>
-        <p className="text-[9px] font-bold text-navy/50 mt-0.5 uppercase tracking-wide">Logbook</p>
-      </div>
-      <div className="bg-white rounded-[16px] border border-mist/60 shadow-sm p-3 text-center">
-        <p className="text-lg font-extrabold text-navy tabular-nums">3</p>
-        <p className="text-[9px] font-bold text-navy/50 mt-0.5 uppercase tracking-wide">Review</p>
-      </div>
-      <div className="bg-white rounded-[16px] border border-mist/60 shadow-sm p-3 text-center">
-        <p className="text-lg font-extrabold text-navy tabular-nums">1</p>
-        <p className="text-[9px] font-bold text-navy/50 mt-0.5 uppercase tracking-wide">Izin</p>
-      </div>
-    </div>
+const HomeView: React.FC<HomeViewProps> = ({ name, user, stats, loading, error, onRetry }) => {
+  const week = stats?.weekChart ?? [];
+  const maxCount = Math.max(1, ...week.map(d => d.count));
 
-    <div className="rise-in bg-white rounded-[20px] border border-mist/60 shadow-sm p-4 mt-4" style={{ animationDelay: '400ms' }}>
-      <p className="text-[11px] font-extrabold text-navy">Info Magang</p>
-      <div className="mt-3 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-[12px] bg-navy text-white flex items-center justify-center shrink-0"><Building2 className="w-4 h-4" /></div>
-        <div className="min-w-0">
-          <p className="text-xs font-bold text-navy truncate">PT Maju Digital</p>
-          <p className="text-[10px] font-semibold text-navy/50 truncate">Mentor: Budi Santoso</p>
+  return (
+    <>
+      {error && (
+        <div className="rise-in bg-white rounded-[20px] border border-red-200 shadow-sm p-4 flex items-center justify-between gap-3">
+          <div className="flex items-start gap-2 min-w-0">
+            <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+            <p className="text-[11px] font-semibold text-red-600 leading-relaxed">{error}</p>
+          </div>
+          <button
+            onClick={onRetry}
+            className="shrink-0 px-3 py-1.5 rounded-full bg-navy text-white text-[10px] font-extrabold flex items-center gap-1.5 active:scale-95 transition-all"
+          >
+            <RefreshCw className="w-3 h-3" /> Coba Lagi
+          </button>
+        </div>
+      )}
+
+      <div className="rise-in bg-navy rounded-[20px] p-4 shadow-md shadow-navy/20 mt-4" style={{ animationDelay: '200ms' }}>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-white/60 text-[10px] font-semibold">Progres Logbook · {name}</p>
+            <p className="text-white text-sm font-extrabold mt-0.5 tracking-tight">Minggu Ini</p>
+            {loading && !stats && (
+              <p className="text-white/40 text-[9px] font-semibold mt-0.5 flex items-center gap-1">
+                <RefreshCw className="w-2.5 h-2.5 animate-spin" /> Memuat statistik...
+              </p>
+            )}
+          </div>
+          <span className="shrink-0 px-2 py-1 rounded-full bg-white/10 border border-white/15 text-[9px] font-bold text-white/80 tabular-nums">
+            {stats ? `${stats.totalLogbook} entri` : '–'}
+          </span>
+        </div>
+        <div className="flex items-end justify-between gap-1.5 mt-4">
+          {week.map((d, i) => {
+            const height = d.count === 0 ? 3 : Math.round((d.count / maxCount) * 56);
+            return (
+              <div key={d.label} className="flex-1 flex flex-col items-center">
+                <span className="text-[8px] font-bold text-white/60 tabular-nums h-3">{d.count > 0 ? d.count : ''}</span>
+                <div className="w-full h-14 flex items-end justify-center mt-0.5">
+                  <div
+                    className={`bar-grow w-2.5 rounded-full ${d.today ? 'bg-white shadow-md shadow-black/20' : 'bg-white/35'}`}
+                    style={{ height: `${height}px`, animationDelay: `${300 + i * 60}ms` }}
+                  />
+                </div>
+                <div className="w-full border-t border-white/10 mt-1 pt-1">
+                  <p className={`text-center text-[8px] font-bold tabular-nums ${d.today ? 'text-white' : 'text-white/50'}`}>{d.label}</p>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
-      <div className="mt-3 flex items-center gap-1.5 text-[10px] font-semibold text-navy/60">
-        <Clock className="w-3 h-3" /> Senin–Jumat · 08:00–16:00
+
+      <div className="rise-in grid grid-cols-3 gap-3 mt-4" style={{ animationDelay: '300ms' }}>
+        <div className="bg-white rounded-[16px] border border-mist/60 shadow-sm p-3 text-center">
+          <p className="text-lg font-extrabold text-navy tabular-nums">{stats ? stats.totalLogbook : '–'}</p>
+          <p className="text-[9px] font-bold text-navy/50 mt-0.5 uppercase tracking-wide">Logbook</p>
+        </div>
+        <div className="bg-white rounded-[16px] border border-mist/60 shadow-sm p-3 text-center">
+          <p className="text-lg font-extrabold text-navy tabular-nums">{stats ? stats.revisiCount : '–'}</p>
+          <p className="text-[9px] font-bold text-navy/50 mt-0.5 uppercase tracking-wide">Review</p>
+        </div>
+        <div className="bg-white rounded-[16px] border border-mist/60 shadow-sm p-3 text-center">
+          <p className="text-lg font-extrabold text-navy tabular-nums">{stats ? stats.izinPendingCount : '–'}</p>
+          <p className="text-[9px] font-bold text-navy/50 mt-0.5 uppercase tracking-wide">Izin</p>
+        </div>
       </div>
-    </div>
-  </>
-);
+
+      <div className="rise-in bg-white rounded-[20px] border border-mist/60 shadow-sm p-4 mt-4" style={{ animationDelay: '400ms' }}>
+        <p className="text-[11px] font-extrabold text-navy">Info Magang</p>
+        <div className="mt-3 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-[12px] bg-navy text-white flex items-center justify-center shrink-0"><Building2 className="w-4 h-4" /></div>
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-navy truncate">{user?.companyName || 'Belum ditentukan'}</p>
+            <p className="text-[10px] font-semibold text-navy/50 truncate">Pembimbing: {user?.teacherName || '—'}</p>
+          </div>
+        </div>
+        <div className="mt-3 flex items-center gap-1.5 text-[10px] font-semibold text-navy/60">
+          <Clock className="w-3 h-3" /> Senin–Jumat · 08:00–16:00
+        </div>
+      </div>
+    </>
+  );
+};
 
 /* placeholder untuk tab lain yang belum dibangun (profil sudah ada sendiri) */
 const PlaceholderView: React.FC<{ tab: TabId }> = ({ tab }) => {

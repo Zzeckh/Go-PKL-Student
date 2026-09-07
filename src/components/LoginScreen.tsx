@@ -3,10 +3,9 @@ import {
   ArrowRight, ArrowLeft, Mail, Lock, Eye, EyeOff, AlertCircle, Loader2, Check, LogIn,
   MapPin, BookOpen, FileCheck,
 } from 'lucide-react';
-import { setToken, saveUser } from '../utils/auth';
+import { authService } from '../services/auth';
+import { clearAuth } from '../utils/auth';
 import { Logo } from './Logo';
-
-const LOGIN_URL = '/api/auth/login';
 
 type Stage = 'splash' | 'loading' | 'start' | 'login';
 
@@ -118,25 +117,13 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, skipIntro =
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch(LOGIN_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.error || 'Email atau password salah.');
+      const user = await authService.login(email, password, remember);
 
-      const token = data?.token || data?.accessToken;
-      const user = data?.user || data;
-      if (!token) throw new Error('Respons login tidak valid.');
-
-      const STAFF_ROLES = ['mentor', 'teacher', 'hubin', 'super_admin', 'admin'];
-      if (user?.role && STAFF_ROLES.includes(user.role)) {
+      /* Aplikasi mobile ini KHUSUS siswa — role lain diarahkan ke web */
+      if (user.role !== 'student') {
+        clearAuth();
         throw new Error('Aplikasi ini khusus role siswa. Role lain silakan pakai aplikasi web.');
       }
-
-      setToken(token, remember);
-      saveUser(user, remember);
 
       onSuccess(user);
     } catch (err: any) {

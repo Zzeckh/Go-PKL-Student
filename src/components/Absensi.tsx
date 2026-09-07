@@ -1,25 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  LogIn, LogOut, MapPin, RefreshCw, Loader2, CheckCircle2, AlertCircle, History,
+  LogIn, MapPin, RefreshCw, Loader2, CheckCircle2, AlertCircle, History,
   Camera, Building2, XCircle, CalendarDays, X,
 } from 'lucide-react';
-
-const URL_CHECK_IN = '/api/attendance/check-in';
-const URL_CHECK_OUT = '/api/attendance/check-out';
-
-const OFFICE = {
-  name: 'PT Maju Digital',
-  address: 'Jl. Inovasi No. 12, Bandung',
-  lat: -6.914744,
-  lng: 107.60981,
-};
-const RADIUS_M = 500;
-
-const HISTORY = [
-  { date: '16/02', in: '07:58', out: '16:02', status: 'Hadir' },
-  { date: '14/02', in: '08:01', out: '16:00', status: 'Hadir' },
-  { date: '13/02', in: '—', out: '—', status: 'Izin' },
-];
+import { absensiService, type Absensi } from '../services/absensi';
+import { ABSENSI_STATUS_MAP, statusView } from '../utils/statusMap';
+import { localToday, toISODate, fmtTimeID, fmtDM } from '../utils/date';
 
 type Gps =
   | { status: 'loading' }
@@ -36,13 +22,22 @@ const distanceM = (a: { lat: number; lng: number }, b: { lat: number; lng: numbe
   return Math.round(2 * R * Math.asin(Math.sqrt(s)));
 };
 
-const fmtTime = (d: Date) =>
-  d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace(/\./g, ':');
-
 const fmtDate = (d: Date) =>
   d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
 
-export const AbsensiView: React.FC = () => {
+/* sub-teks riwayat berdasarkan status absensi */
+const HISTORY_SUB: Record<string, string> = {
+  hadir: 'Hadir penuh',
+  izin: 'Izin tercatat',
+  sakit: 'Sakit tercatat',
+  alpha: 'Tanpa keterangan',
+};
+
+interface AbsensiViewProps {
+  user: any;
+}
+
+export const AbsensiView: React.FC<AbsensiViewProps> = ({ user }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [camOn, setCamOn] = useState(false);
@@ -50,11 +45,41 @@ export const AbsensiView: React.FC = () => {
   const [selfie, setSelfie] = useState<string | null>(null);
 
   const [gps, setGps] = useState<Gps>({ status: 'loading' });
-  const [checkIn, setCheckIn] = useState<string | null>(null);
-  const [checkOut, setCheckOut] = useState<string | null>(null);
-  const [busy, setBusy] = useState<null | 'in' | 'out'>(null);
+  const [today, setToday] = useState<Absensi | null>(null);
+  const [history, setHistory] = useState<Absensi[]>([]);
+  const [listLoading, setListLoading] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [closingHistory, setClosingHistory] = useState(false);
+
+  /* ── Tempat PKL dari data user (backend = source of truth) ── */
+  const companyName: string = user?.companyName || 'Belum ditentukan';
+  const companyAddress: string = user?.companyAddress || 'Alamat belum diatur';
+  const fence = user?.companyLocation || null; // { lat, lng, radius } | null
+  const hasFence = !!(fence && fence.lat != null && fence.lng != null);
+  const RADIUS_M: number = fence?.radius ?? 500;
+
+  /* ── Muat absensi hari ini + riwayat dari API ── */
+  const load = useCallback(async () => {
+    setListLoading(true);
+    setListError(null);
+    try {
+      const all = await absensiService.list();
+      const t = localToday();
+      setToday(all.find(a => toISODate(a.date) === t) || null);
+      setHistory(all.slice(0, 7));
+    } catch (err: any) {
+      setListError(err?.message || 'Gagal memuat data absensi.');
+    } finally {
+      setListLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const startCam = async () => {
     setCamError(null);
@@ -117,33 +142,31 @@ export const AbsensiView: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const dist = gps.status === 'ok' ? distanceM({ lat: gps.lat, lng: gps.lng }, OFFICE) : null;
-  const inFence = dist !== null && dist <= RADIUS_M;
+  const dist = gps.status === 'ok' && hasFence ? distanceM({ lat: gps.lat, lng: gps.lng }, fence) : null;
+  /* Client preview advisory — validasi final tetap di server */
+  const inFence = !hasFence || (dist !== null && dist <= RADIUS_M);
   const reqSelfie = !!selfie;
   const reqLokasi = inFence;
   const allReq = reqSelfie && reqLokasi;
 
-  const doAbsen = async (type: 'in' | 'out') => {
-    setBusy(type);
-    const body = gps.status === 'ok' ? { latitude: gps.lat, longitude: gps.lng, accuracy: gps.accuracy } : {};
+  const checkInLabel = today ? fmtTimeID(today.checkInTime) : null;
+
+  const doAbsen = async () => {
+    if (gps.status !== 'ok') {
+      setSubmitError('Lokasi GPS belum siap. Tunggu sebentar lalu coba lagi.');
+      return;
+    }
+    setBusy(true);
+    setSubmitError(null);
     try {
-      const token = localStorage.getItem('pkl_token') || sessionStorage.getItem('pkl_token');
-      const res = await fetch(type === 'in' ? URL_CHECK_IN : URL_CHECK_OUT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.error || 'Gagal absen.');
-      const t = fmtTime(new Date());
-      if (type === 'in') setCheckIn(data?.check_in || t);
-      else setCheckOut(data?.check_out || t);
-    } catch {
-      const t = fmtTime(new Date());
-      if (type === 'in') setCheckIn(t);
-      else setCheckOut(t);
+      /* Backend yang memvalidasi geofence (403) & duplikat (409) */
+      const created = await absensiService.checkIn(gps.lat, gps.lng, 'hadir');
+      setToday(created);
+      setHistory(prev => [created, ...prev].slice(0, 7));
+    } catch (err: any) {
+      setSubmitError(err?.message || 'Gagal absen. Coba lagi.');
     } finally {
-      setBusy(null);
+      setBusy(false);
       setSelfie(null);
     }
   };
@@ -181,7 +204,7 @@ export const AbsensiView: React.FC = () => {
             <MapPin className="w-3 h-3" />
             {gps.status === 'loading' && 'Mencari...'}
             {gps.status === 'error' && 'GPS error'}
-            {gps.status === 'ok' && (inFence ? `Di area · ${dist}m` : `Luar area · ${dist}m`)}
+            {gps.status === 'ok' && (!hasFence ? 'Tanpa geofence' : inFence ? `Di area · ${dist}m` : `Luar area · ${dist}m`)}
           </span>
           <button
             onClick={handleHistory}
@@ -196,6 +219,22 @@ export const AbsensiView: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* ═══ ERROR MUAT DATA ═══ */}
+      {listError && (
+        <div className="rise-in bg-white rounded-[20px] border border-red-200 shadow-sm p-4 mt-5 flex items-center justify-between gap-3">
+          <div className="flex items-start gap-2 min-w-0">
+            <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+            <p className="text-[11px] font-semibold text-red-600 leading-relaxed">{listError}</p>
+          </div>
+          <button
+            onClick={load}
+            className="shrink-0 px-3 py-1.5 rounded-full bg-navy text-white text-[10px] font-extrabold flex items-center gap-1.5 active:scale-95 transition-all"
+          >
+            <RefreshCw className="w-3 h-3" /> Coba Lagi
+          </button>
+        </div>
+      )}
 
       {/* ═══ 1) CARD VERIFIKASI & ABSENSI (GABUNGAN) ═══ */}
       <div className="rise-in bg-white rounded-[20px] border border-mist/60 shadow-sm p-4 mt-5" style={{ animationDelay: '100ms' }}>
@@ -253,37 +292,43 @@ export const AbsensiView: React.FC = () => {
           </div>
           <div className="flex items-center gap-2.5">
             {reqLokasi ? <CheckCircle2 className="w-4 h-4 text-navy" /> : <XCircle className="w-4 h-4 text-navy/30" />}
-            <p className={`text-[10px] font-bold ${reqLokasi ? 'text-navy' : 'text-navy/40'}`}>Berada dalam radius {RADIUS_M} m dari tempat PKL</p>
+            <p className={`text-[10px] font-bold ${reqLokasi ? 'text-navy' : 'text-navy/40'}`}>
+              {hasFence
+                ? `Berada dalam radius ${RADIUS_M} m dari tempat PKL`
+                : 'Lokasi GPS terdeteksi (tempat PKL belum punya geofence)'}
+            </p>
           </div>
         </div>
 
-        {/* tombol absen */}
-        <div className="grid grid-cols-2 gap-3 mt-4">
-          <button
-            onClick={() => doAbsen('in')}
-            disabled={!allReq || !!checkIn || busy !== null}
-            className={`rounded-[16px] py-4 flex flex-col items-center gap-1 transition-all active:scale-[0.97] disabled:opacity-50 ${
-              checkIn ? 'bg-mist/60 text-navy/40' : 'bg-navy text-white shadow-md shadow-navy/25'
-            }`}
-          >
-            {busy === 'in' ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogIn className="w-5 h-5" />}
-            <span className="text-xs font-extrabold">{checkIn ? `Masuk ${checkIn}` : 'Absen Masuk'}</span>
-          </button>
+        {/* error dari backend (geofence 403 / duplikat 409 / dsb.) */}
+        {submitError && (
+          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-[16px] flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+            <p className="text-[11px] font-semibold text-red-600 leading-relaxed">{submitError}</p>
+          </div>
+        )}
 
-          <button
-            onClick={() => doAbsen('out')}
-            disabled={!allReq || !checkIn || !!checkOut || busy !== null}
-            className={`rounded-[16px] py-4 flex flex-col items-center gap-1 border transition-all active:scale-[0.97] disabled:opacity-50 ${
-              checkOut ? 'bg-mist/60 text-navy/40 border-mist/60' :
-              checkIn ? 'bg-white text-navy border-mist/60 shadow-sm' : 'bg-white text-navy/40 border-mist/60'
-            }`}
-          >
-            {busy === 'out' ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogOut className="w-5 h-5" />}
-            <span className="text-xs font-extrabold">{checkOut ? `Selesai ${checkOut}` : 'Absen Selesai'}</span>
-          </button>
-        </div>
+        {/* tombol absen masuk — backend hanya mendukung check-in */}
+        <button
+          onClick={doAbsen}
+          disabled={!allReq || !!today || busy || listLoading}
+          className={`w-full mt-4 rounded-[16px] py-4 flex flex-col items-center gap-1 transition-all active:scale-[0.97] disabled:opacity-50 ${
+            today ? 'bg-mist/60 text-navy/40' : 'bg-navy text-white shadow-md shadow-navy/25'
+          }`}
+        >
+          {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogIn className="w-5 h-5" />}
+          <span className="text-xs font-extrabold">
+            {busy ? 'Mengirim...' : today ? (checkInLabel ? `Masuk ${checkInLabel}` : 'Sudah absen hari ini') : 'Absen Masuk'}
+          </span>
+        </button>
 
-        {!allReq && (
+        {listLoading && !today && (
+          <p className="mt-3 flex items-center justify-center gap-1.5 text-[9px] font-semibold text-navy/40">
+            <Loader2 className="w-3 h-3 animate-spin" /> Memeriksa absensi hari ini...
+          </p>
+        )}
+
+        {!allReq && !today && (
           <p className="mt-3 flex items-center gap-1.5 text-[9px] font-semibold text-navy/40">
             <AlertCircle className="w-3 h-3" /> Lengkapi kedua syarat untuk membuka tombol absen.
           </p>
@@ -299,8 +344,8 @@ export const AbsensiView: React.FC = () => {
             <Building2 className="w-4 h-4" />
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-bold text-navy truncate">{OFFICE.name}</p>
-            <p className="text-[10px] font-semibold text-navy/50 truncate">{OFFICE.address}</p>
+            <p className="text-xs font-bold text-navy truncate">{companyName}</p>
+            <p className="text-[10px] font-semibold text-navy/50 truncate">{companyAddress}</p>
           </div>
         </div>
 
@@ -309,7 +354,7 @@ export const AbsensiView: React.FC = () => {
             <MapPin className="w-3 h-3" />
             {gps.status === 'loading' && 'Mendeteksi lokasimu...'}
             {gps.status === 'error' && 'GPS tidak tersedia'}
-            {gps.status === 'ok' && `Jarakmu: ${dist} m`}
+            {gps.status === 'ok' && (!hasFence ? 'Geofence belum diatur' : `Jarakmu: ${dist} m`)}
           </span>
           <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold ${
             inFence ? 'bg-navy/10 text-navy' : 'bg-mist text-navy/60'
@@ -325,29 +370,36 @@ export const AbsensiView: React.FC = () => {
           <div className="flex items-center justify-between px-1">
             <p className="text-[11px] font-extrabold text-navy">Riwayat Kehadiran</p>
             <span className="px-1.5 py-0.5 rounded-full bg-shell border border-mist/60 text-[8px] font-bold text-navy/60">
-              {HISTORY.length} terakhir
+              {history.length} terakhir
             </span>
           </div>
 
           <div className="mt-2 flex flex-col">
-            {HISTORY.map((h, i) => (
-              <div key={h.date} className={`flex items-center gap-2.5 px-1 py-2.5 ${i > 0 ? 'border-t border-mist/60' : ''}`}>
-                <div className="w-8 h-8 rounded-[10px] bg-shell border border-mist/60 flex items-center justify-center shrink-0">
-                  <span className="text-[9px] font-extrabold text-navy tabular-nums">{h.date}</span>
+            {history.length === 0 && (
+              <p className="px-1 py-3 text-[10px] font-semibold text-navy/40 text-center">
+                {listLoading ? 'Memuat riwayat...' : 'Belum ada riwayat absensi.'}
+              </p>
+            )}
+
+            {history.map((a, i) => {
+              const sv = statusView(ABSENSI_STATUS_MAP, a.status);
+              return (
+                <div key={a.id} className={`flex items-center gap-2.5 px-1 py-2.5 ${i > 0 ? 'border-t border-mist/60' : ''}`}>
+                  <div className="w-8 h-8 rounded-[10px] bg-shell border border-mist/60 flex items-center justify-center shrink-0">
+                    <span className="text-[9px] font-extrabold text-navy tabular-nums">{fmtDM(a.date)}</span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-bold text-navy tabular-nums">
+                      {fmtTimeID(a.checkInTime) ? `Masuk ${fmtTimeID(a.checkInTime)}` : 'Tanpa check-in'}
+                    </p>
+                    <p className="text-[9px] font-semibold text-navy/50 mt-0.5">{HISTORY_SUB[a.status] || '—'}</p>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-[8px] font-extrabold ${sv.chipClass}`}>
+                    {sv.label}
+                  </span>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-bold text-navy tabular-nums">{h.in} – {h.out}</p>
-                  <p className="text-[9px] font-semibold text-navy/50 mt-0.5">
-                    {h.status === 'Hadir' ? 'Hadir penuh' : 'Izin disetujui'}
-                  </p>
-                </div>
-                <span className={`px-2 py-0.5 rounded-full text-[8px] font-extrabold ${
-                  h.status === 'Hadir' ? 'bg-navy/10 text-navy' : 'bg-mist text-navy'
-                }`}>
-                  {h.status}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

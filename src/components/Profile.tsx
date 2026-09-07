@@ -1,29 +1,14 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   GraduationCap, Building2, BookOpen, CheckCircle2,
-  Mail, Phone, IdCard, LogOut, CalendarDays,
+  Mail, IdCard, LogOut, CalendarDays,
 } from 'lucide-react';
+import { dashboardService, type DashboardStats } from '../services/dashboard';
 
 interface ProfileViewProps {
   user: any;
   onLogout: () => void;
 }
-
-/* data tempat magang (nanti dari API profil magang) */
-const INTERNSHIP = {
-  company: 'PT Maju Digital',
-  address: 'Jl. Inovasi No. 12, Bandung',
-  guruPembimbing: { name: 'Siti Aminah, S.Pd.', subject: 'Produktif RPL' },
-  mentor: { name: 'Budi Santoso, S.Kom.', role: 'Senior Developer' },
-};
-
-/* statistik (nanti dari API) */
-const STATS = {
-  logbookCount: 32,
-  logbookHours: 256.5,
-  kehadiran: 18,
-  kehadiranPersen: 96,
-};
 
 const fmtHours = (h: number) => String(h).replace('.', ',');
 
@@ -68,37 +53,51 @@ const DetailRow: React.FC<{
 
 /* ══════════════════════════════════════════════════════
    PROFILE VIEW — hero avatar + stats + info PKL + detail
+   Semua data dari objek user (login / /api/auth/me) +
+   statistik dari data logbook & absensi.
    ══════════════════════════════════════════════════════ */
 export const ProfileView: React.FC<ProfileViewProps> = ({ user, onLogout }) => {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [statsError, setStatsError] = useState<string | null>(null);
+
+  const loadStats = useCallback(async () => {
+    setStatsError(null);
+    try {
+      const s = await dashboardService.getStats();
+      setStats(s);
+    } catch (err: any) {
+      setStatsError(err?.message || 'Gagal memuat statistik.');
+    }
+  }, []);
+
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
+
   const fullName = user?.name || 'Siswa PKL';
   const initials = fullName
     .split(' ')
-    .map(w => w[0])
+    .map((w: string) => w[0])
     .slice(0, 2)
     .join('')
     .toUpperCase();
 
-  const kelas = user?.class || 'XII RPL 2';
-  const nis = user?.nis || '2022101001';
-  const major = user?.major || 'Rekayasa Perangkat Lunak';
-  const email = user?.email || 'siswa@sch.id';
-  const phone = user?.phone || '0812-3456-7890';
+  const kelas = user?.className || '—';
+  const major = user?.major || '—';
+  const email = user?.email || '—';
+  const company: string = user?.companyName || 'Belum ditentukan';
+  const companyAddress: string = user?.companyAddress || 'Alamat belum diatur';
+  const teacherName: string = user?.teacherName || '—';
 
-  const guruInitials = INTERNSHIP.guruPembimbing.name
-    .replace(/,.*$/, '')
-    .split(' ')
-    .map(w => w[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
-
-  const mentorInitials = INTERNSHIP.mentor.name
-    .replace(/,.*$/, '')
-    .split(' ')
-    .map(w => w[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase();
+  const guruInitials = teacherName !== '—'
+    ? teacherName
+        .replace(/,.*$/, '')
+        .split(' ')
+        .map((w: string) => w[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase()
+    : '—';
 
   return (
     <div className="relative -mx-5 -mt-6">
@@ -120,10 +119,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onLogout }) => {
               <GraduationCap className="w-3 h-3" />
               {kelas}
             </span>
-            <span className="px-3 py-1 rounded-full bg-white/10 border border-white/15 text-[10px] font-bold text-white/70 flex items-center gap-1.5">
-              <IdCard className="w-3 h-3" />
-              {nis}
-            </span>
+            {user?.academicYear && (
+              <span className="px-3 py-1 rounded-full bg-white/10 border border-white/15 text-[10px] font-bold text-white/70 flex items-center gap-1.5">
+                <IdCard className="w-3 h-3" />
+                T.A. {user.academicYear}
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -132,19 +133,26 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onLogout }) => {
       <div className="relative bg-white rounded-t-[32px] px-5 pt-6 pb-32 shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
 
         {/* 1) SECTION STATISTIK */}
-        <p className="text-[10px] font-bold text-navy/50 uppercase tracking-wide">Statistik Magang</p>
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-bold text-navy/50 uppercase tracking-wide">Statistik Magang</p>
+          {statsError && (
+            <button onClick={loadStats} className="text-[9px] font-bold text-red-500 underline">
+              Muat ulang
+            </button>
+          )}
+        </div>
         <div className="rise-in grid grid-cols-2 gap-3 mt-3" style={{ animationDelay: '100ms' }}>
           <StatTile
             icon={BookOpen}
-            value={STATS.logbookCount}
+            value={stats ? stats.totalLogbook : '–'}
             label="Logbook"
-            sub={`${fmtHours(STATS.logbookHours)} jam`}
+            sub={stats ? `${fmtHours(stats.totalHours)} jam` : undefined}
           />
           <StatTile
             icon={CheckCircle2}
-            value={STATS.kehadiran}
+            value={stats ? stats.attendanceCount : '–'}
             label="Kehadiran"
-            sub={`${STATS.kehadiranPersen}% tepat waktu`}
+            sub="hari hadir"
           />
         </div>
 
@@ -157,37 +165,24 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onLogout }) => {
               <Building2 className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-extrabold text-navy leading-tight">{INTERNSHIP.company}</p>
-              <p className="text-[10px] font-semibold text-navy/50 truncate mt-0.5">{INTERNSHIP.address}</p>
+              <p className="text-sm font-extrabold text-navy leading-tight">{company}</p>
+              <p className="text-[10px] font-semibold text-navy/50 truncate mt-0.5">{companyAddress}</p>
             </div>
           </div>
 
-          {/* guru + mentor — 2 kolom */}
-          <div className="mt-4 pt-4 border-t border-mist/60 grid grid-cols-2 gap-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-full bg-shell border border-mist/60 flex items-center justify-center text-navy text-[10px] font-extrabold shrink-0">
-                {guruInitials}
-              </div>
-              <div className="min-w-0">
-                <p className="text-[9px] font-bold text-navy/50 uppercase tracking-wide">Guru Pembimbing</p>
-                <p className="text-[10px] font-bold text-navy truncate leading-tight mt-0.5">
-                  {INTERNSHIP.guruPembimbing.name}
-                </p>
-                <p className="text-[9px] font-semibold text-navy/50 truncate">{INTERNSHIP.guruPembimbing.subject}</p>
-              </div>
+          {/* guru pembimbing — data dari user (mentor belum tersedia di API) */}
+          <div className="mt-4 pt-4 border-t border-mist/60 flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-full bg-shell border border-mist/60 flex items-center justify-center text-navy text-[10px] font-extrabold shrink-0">
+              {guruInitials}
             </div>
-
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-full bg-navy/10 text-navy flex items-center justify-center text-[10px] font-extrabold shrink-0">
-                {mentorInitials}
-              </div>
-              <div className="min-w-0">
-                <p className="text-[9px] font-bold text-navy/50 uppercase tracking-wide">Mentor</p>
-                <p className="text-[10px] font-bold text-navy truncate leading-tight mt-0.5">
-                  {INTERNSHIP.mentor.name}
-                </p>
-                <p className="text-[9px] font-semibold text-navy/50 truncate">{INTERNSHIP.mentor.role}</p>
-              </div>
+            <div className="min-w-0">
+              <p className="text-[9px] font-bold text-navy/50 uppercase tracking-wide">Guru Pembimbing</p>
+              <p className="text-[10px] font-bold text-navy truncate leading-tight mt-0.5">
+                {teacherName}
+              </p>
+              {user?.major && (
+                <p className="text-[9px] font-semibold text-navy/50 truncate">{user.major}</p>
+              )}
             </div>
           </div>
         </div>
@@ -197,8 +192,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onLogout }) => {
         <div className="rise-in bg-white rounded-[20px] border border-mist/60 shadow-sm mt-3 divide-y divide-mist/60" style={{ animationDelay: '300ms' }}>
           <DetailRow icon={GraduationCap} label="Jurusan" value={major} />
           <DetailRow icon={Mail} label="Email" value={email} />
-          <DetailRow icon={Phone} label="No. HP" value={phone} />
-          <DetailRow icon={CalendarDays} label="Periode Magang" value="06 Jan – 26 Jun 2026" last />
+          {user?.academicYear && (
+            <DetailRow icon={CalendarDays} label="Tahun Ajaran" value={String(user.academicYear)} last />
+          )}
         </div>
 
         {/* 4) TOMBOL LOGOUT */}
