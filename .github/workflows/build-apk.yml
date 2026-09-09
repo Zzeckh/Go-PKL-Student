@@ -22,7 +22,7 @@ jobs:
           node-version: 22        # ← WAS 20, Capacitor butuh >=22
           cache: npm
 
-      - name: Setup JDK 17
+      - name: Setup JDK 21
         uses: actions/setup-java@v4
         with:
           distribution: temurin
