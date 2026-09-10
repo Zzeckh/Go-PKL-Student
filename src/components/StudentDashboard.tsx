@@ -112,9 +112,14 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
     }
   }, []);
 
+  /* ★ FIX: fetch saat mount (tab awal 'home') DAN otomatis refresh
+     setiap kali user navigasi kembali ke tab home — data selalu segar
+     setelah submit absensi/logbook/izin di tab lain ★ */
   useEffect(() => {
-    loadStats();
-  }, [loadStats]);
+    if (tab === 'home') {
+      loadStats();
+    }
+  }, [tab, loadStats]);
 
   const fullName = user?.name || 'Siswa';
   const firstName = fullName.split(' ')[0];
