@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      VITE_API_BASE: ${{ secrets.VITE_API_BASE }}
+      VITE_API_BASE: https://go-pkl-olive.vercel.app/api
 
     steps:
       - name: Checkout
