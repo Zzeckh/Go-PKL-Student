@@ -3,7 +3,7 @@ import {
   FileText, HeartPulse, Loader2, CheckCircle2, XCircle, Plus, X, CalendarDays,
   ChevronDown, ImagePlus, Trash2, AlertCircle, RefreshCw,
 } from 'lucide-react';
-import { TopoPattern } from './LoginScreen';
+import { TopoPattern } from './Decor';
 import { permissionService, type Permission, type PermissionType } from '../services/permission';
 import { PERMISSION_STATUS_MAP, statusView } from '../utils/statusMap';
 import { fmtDM } from '../utils/date';

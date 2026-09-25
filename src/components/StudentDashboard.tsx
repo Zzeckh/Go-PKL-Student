@@ -3,7 +3,7 @@ import {
   Bell, X, BookOpen, FileCheck, MapPin, Building2, Clock, AlertCircle, RefreshCw,
 } from 'lucide-react';
 import { BottomNav, TABS, type TabId } from './BottomNav';
-import { TopoPattern, WAVE_TOP_FILL, WAVE_BOTTOM_FILL } from './LoginScreen';
+import { TopoPattern, WAVE_TOP_FILL, WAVE_BOTTOM_FILL } from './Decor';
 import { AbsensiView } from './Absensi';
 import { LogbookView } from './Logbook';
 import { IzinView } from './Izin';
