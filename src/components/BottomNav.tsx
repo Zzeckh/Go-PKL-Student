@@ -1,11 +1,11 @@
 import React from 'react';
 import { Home, MapPin, BookOpen, FileCheck, User } from 'lucide-react';
 
-export type TabId = 'home' | 'absensi' | 'logbook' | 'izin' | 'profil';
+export type TabId = 'home' | 'rekap' | 'logbook' | 'izin' | 'profil';
 
 export const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'home',    label: 'Home',    icon: Home },
-  { id: 'absensi', label: 'Absensi', icon: MapPin },
+  { id: 'rekap',   label: 'Rekap',   icon: MapPin },
   { id: 'logbook', label: 'Logbook', icon: BookOpen },
   { id: 'izin',    label: 'Izin',    icon: FileCheck },
   { id: 'profil',  label: 'Profil',  icon: User },

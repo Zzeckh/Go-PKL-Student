@@ -5,11 +5,10 @@ import {
 } from 'lucide-react';
 import { BottomNav, TABS, type TabId } from './BottomNav';
 import { TopoPattern, WAVE_TOP_FILL, WAVE_BOTTOM_FILL } from './Decor';
-import { AbsensiView } from './Absensi';
+import { RekapView } from './Rekap';
 import { LogbookView } from './Logbook';
 import { IzinView } from './Izin';
 import { ProfileView } from './Profile';
-import { RekapanHarian } from './RekapanHarian';
 import { SelfieCamera } from './SelfieCamera';
 import { useTodayAttendance } from '../hooks/useTodayAttendance';
 import { dashboardService, type DashboardStats } from '../services/dashboard';
@@ -238,7 +237,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
               </div>
             </div>
 
-            {/* ═══ WHITE SHEET melengkung (wave) menimpa hero ═══ */}
+            {/* ═══ WHITE SHEET ═══ */}
             <div className="relative -mt-8 flex-1 bg-white rounded-t-[32px] px-5 pt-6 pb-32 shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
               <HomeView
                 user={user}
@@ -251,8 +250,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
           </>
         ) : (
           <div className="flex-1 overflow-y-auto px-5 pt-6 pb-32">
-            {tab === 'absensi' ? (
-              <AbsensiView user={user} />
+            {tab === 'rekap' ? (
+              <RekapView user={user} />
             ) : tab === 'logbook' ? (
               <LogbookView />
             ) : tab === 'izin' ? (
@@ -303,8 +302,7 @@ const NotifPop: React.FC<{ closing: boolean }> = ({ closing }) => (
 );
 
 /* ══════════════════════════════════════════════════════
-   HOME VIEW — tiket absensi monokrom navy
-   Urutan: header → KAMERA (atas) → jam → CTA → status GPS
+   HOME VIEW — tiket absensi + ringkasan (Rekap pindah ke tab sendiri)
    ══════════════════════════════════════════════════════ */
 interface HomeViewProps {
   user: any;
@@ -380,9 +378,7 @@ const HomeView: React.FC<HomeViewProps> = ({ user, stats, error, onRetry }) => {
 
       {/* ═══ TIKET ABSENSI ═══ */}
       <div className="rise-in relative bg-white rounded-[24px] border border-mist/60 shadow-[0_16px_40px_rgba(10,25,60,0.10)] overflow-hidden">
-
         <div className="px-5 pt-4 pb-5">
-          {/* header */}
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[9px] font-extrabold text-navy/40 uppercase tracking-[0.14em]">Absensi Hari Ini</p>
@@ -400,14 +396,12 @@ const HomeView: React.FC<HomeViewProps> = ({ user, stats, error, onRetry }) => {
             </div>
           )}
 
-          {/* ── KAMERA DI ATAS ── hanya saat masih ada aksi pending */}
           {needsVerify && (
             <div className="mt-4">
               <SelfieCamera selfie={selfie} onSelfie={setSelfie} compact />
             </div>
           )}
 
-          {/* jam masuk ─ durasi ─ jam pulang */}
           <div className="grid grid-cols-[1fr_auto_1fr] items-end mt-5">
             <div>
               <p className="text-[8px] font-extrabold uppercase tracking-[0.14em] text-navy/40">Masuk</p>
@@ -434,7 +428,6 @@ const HomeView: React.FC<HomeViewProps> = ({ user, stats, error, onRetry }) => {
             </div>
           </div>
 
-          {/* CTA kontekstual / strip selesai */}
           {!hasOut ? (
             <button
               onClick={hasIn ? doCheckOut : doCheckIn}
@@ -457,7 +450,6 @@ const HomeView: React.FC<HomeViewProps> = ({ user, stats, error, onRetry }) => {
             </div>
           )}
 
-          {/* status GPS — kaki tiket */}
           {needsVerify && (
             <div className="mt-4 pt-3.5 border-t border-dashed border-mist flex items-center gap-2">
               <span className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
@@ -503,11 +495,6 @@ const HomeView: React.FC<HomeViewProps> = ({ user, stats, error, onRetry }) => {
           <p className="text-[17px] font-extrabold text-navy tabular-nums leading-none">{stats ? stats.izinPendingCount : '–'}</p>
           <p className="text-[8px] font-extrabold text-navy/45 uppercase tracking-wide">Izin</p>
         </div>
-      </div>
-
-      {/* ═══ REKAP ═══ */}
-      <div className="rise-in mt-6" style={{ animationDelay: '250ms' }}>
-        <RekapanHarian />
       </div>
     </>
   );

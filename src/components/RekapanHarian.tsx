@@ -25,14 +25,14 @@ const monthLabel = (key: string): string => {
 
 const thisMonthKey = monthKey(new Date());
 
-/* ── Baris rekap (typed, no any) ── */
+/* ── Baris rekap (typed) ── */
 interface RecapRow {
   id: number;
-  dateKey: string;    // YYYY-MM-DD
-  dateLabel: string;  // "17 Sep"
+  dateKey: string;
+  dateLabel: string;
   masuk: string | null;
   pulang: string | null;
-  jam: string | null; // "8j 4m" | null
+  jam: string | null;
 }
 
 const parseHM = (iso: string | null | undefined): number | null => {
@@ -65,7 +65,6 @@ const toRow = (a: Absensi): RecapRow => {
   };
 };
 
-/* ── Skeleton 3 baris shimmer ── */
 const SkeletonRows: React.FC = () => (
   <div className="flex flex-col">
     {[0, 1, 2].map(i => (
@@ -79,10 +78,6 @@ const SkeletonRows: React.FC = () => (
   </div>
 );
 
-/* ══════════════════════════════════════════════════════
-   REKAPAN HARIAN — tabel absensi per bulan + total,
-   navigasi bulan (default: bulan berjalan).
-   ══════════════════════════════════════════════════════ */
 export const RekapanHarian: React.FC = () => {
   const [month, setMonth] = useState<string>(thisMonthKey);
   const [rows, setRows] = useState<RecapRow[]>([]);
@@ -116,8 +111,7 @@ export const RekapanHarian: React.FC = () => {
   const totalJam = fmtDuration(totalMinutes);
 
   return (
-    <div className="rise-in bg-white rounded-[20px] border border-mist/60 shadow-sm p-4 mt-4" style={{ animationDelay: '300ms' }}>
-      {/* header: judul + month pill */}
+    <div className="bg-white rounded-[20px] border border-mist/60 shadow-sm p-4">
       <div className="flex items-center justify-between gap-2">
         <p className="text-[10px] font-bold text-navy/50 uppercase tracking-wide">Rekapan Harian</p>
         <div className="bg-shell border border-mist/60 rounded-full px-1.5 py-1 flex items-center gap-1">
@@ -140,15 +134,12 @@ export const RekapanHarian: React.FC = () => {
         </div>
       </div>
 
-      {/* error */}
       {error && (
         <p className="mt-3 text-[10px] font-bold text-red-500">{error}</p>
       )}
 
-      {/* tabel */}
       {!error && (
         <div className="mt-2">
-          {/* header row */}
           <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 px-1 py-2 text-[9px] font-bold uppercase tracking-wide text-navy/50">
             <span>Tanggal</span>
             <span className="w-10 text-right">Masuk</span>
@@ -176,7 +167,6 @@ export const RekapanHarian: React.FC = () => {
             </div>
           )}
 
-          {/* footer chip */}
           {!loading && rows.length > 0 && (
             <div className="mt-3 inline-flex items-center gap-1.5 bg-shell border border-mist/60 rounded-full px-3 py-1.5">
               <span className="text-[10px] font-bold text-navy/70 tabular-nums">
@@ -189,4 +179,3 @@ export const RekapanHarian: React.FC = () => {
     </div>
   );
 };
-
