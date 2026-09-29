@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Bell, X, BookOpen, FileCheck, MapPin, AlertCircle, RefreshCw,
-  LogIn, LogOut, Loader2, CheckCircle2, XCircle,
+  LogIn, LogOut, Loader2, CheckCircle2, CalendarDays,
 } from 'lucide-react';
 import { BottomNav, TABS, type TabId } from './BottomNav';
 import { TopoPattern, WAVE_TOP_FILL, WAVE_BOTTOM_FILL } from './Decor';
@@ -92,6 +92,37 @@ const PageSweep: React.FC<{ icon: React.ElementType; label: string }> = ({ icon:
   </div>
 );
 
+/* ═══════════ helpers ═══════════ */
+const greeting = () => {
+  const h = new Date().getHours();
+  if (h < 11) return 'Selamat pagi';
+  if (h < 15) return 'Selamat siang';
+  if (h < 19) return 'Selamat sore';
+  return 'Selamat malam';
+};
+
+const fmtDur = (ms: number) => {
+  if (ms <= 0) return '0j 0m';
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  return `${h}j ${m}m`;
+};
+
+/* badge status — monokrom navy: outline → solid → tint */
+const StatusBadge: React.FC<{ hasIn: boolean; hasOut: boolean }> = ({ hasIn, hasOut }) => {
+  const s = !hasIn
+    ? { cls: 'bg-white text-navy/50 border-navy/20', label: 'Belum Absen', node: <span className="w-1.5 h-1.5 rounded-full border border-navy/40" /> }
+    : !hasOut
+      ? { cls: 'bg-navy text-white border-navy', label: 'Berlangsung', node: <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" /> }
+      : { cls: 'bg-navy/10 text-navy border-navy/15', label: 'Selesai', node: <CheckCircle2 className="w-3 h-3" /> };
+  return (
+    <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[9px] font-extrabold ${s.cls}`}>
+      {s.node}
+      {s.label}
+    </span>
+  );
+};
+
 export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout, onUserUpdate }) => {
   const [tab, setTab] = useState<TabId>('home');
   const [pending, setPending] = useState<TabId | null>(null);
@@ -101,7 +132,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
   const [showNotif, setShowNotif] = useState(false);
   const [closing, setClosing] = useState(false);
 
-  /* ── Statistik dashboard dari data logbook + absensi + izin ── */
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
@@ -119,9 +149,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
     }
   }, []);
 
-  /* ★ FIX: fetch saat mount (tab awal 'home') DAN otomatis refresh
-     setiap kali user navigasi kembali ke tab home — data selalu segar
-     setelah submit absensi/logbook/izin di tab lain ★ */
   useEffect(() => {
     if (tab === 'home') {
       loadStats();
@@ -145,14 +172,10 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
   const handleTabChange = (t: TabId) => {
     if (showNotif) closeNotif();
     if (t === tab || cover) return;
-
     setPending(t);
     setCover(true);
     window.setTimeout(() => setTab(t), SWITCH_AT);
-    window.setTimeout(() => {
-      setCover(false);
-      setPending(null);
-    }, SWEEP_TOTAL);
+    window.setTimeout(() => { setCover(false); setPending(null); }, SWEEP_TOTAL);
   };
 
   const pendingMeta = pending ? TABS.find(x => x.id === pending) : null;
@@ -164,8 +187,11 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
       <div className="flex-1 flex flex-col">
         {tab === 'home' ? (
           <>
-            <div className="rise-in relative bg-navy px-5 pt-6 pb-16 shrink-0">
+            {/* ═══ HERO navy ═══ */}
+            <div className="rise-in relative bg-navy px-5 pt-6 pb-16 shrink-0 overflow-hidden">
               <div className="absolute inset-0 overflow-hidden"><TopoPattern /></div>
+              <div className="absolute -top-20 -right-16 w-64 h-64 rounded-full bg-white/5 blur-2xl pointer-events-none" />
+              <div className="absolute top-28 -left-24 w-56 h-56 rounded-full bg-white/5 blur-2xl pointer-events-none" />
 
               <div className="relative flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -173,8 +199,10 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
                     {initials}
                   </div>
                   <div>
-                    <p className="text-white/60 text-[11px] font-semibold">Halo,</p>
-                    <p className="text-white text-sm font-extrabold leading-tight">{firstName}</p>
+                    <p className="text-white/60 text-[10px] font-semibold capitalize">
+                      {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                    </p>
+                    <p className="text-white text-[13px] font-extrabold leading-tight mt-0.5">{user?.className || 'Siswa PKL'}</p>
                   </div>
                 </div>
 
@@ -193,22 +221,24 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
               </div>
 
               <div className="relative mt-6">
-                <p className="text-white/60 text-[11px] font-semibold">Total Kehadiran</p>
-                <div className="flex items-end gap-2 mt-1">
-                  <p className="text-white text-4xl font-extrabold tabular-nums tracking-tight">
-                    {stats ? stats.attendanceCount : '–'}
-                  </p>
-                  <span className="text-white/60 text-sm font-bold mb-1">hari</span>
-                  <button
-                    onClick={() => handleTabChange('absensi')}
-                    className="mb-1 ml-auto shrink-0 bg-white text-navy rounded-full px-5 py-2.5 text-[11px] font-extrabold flex items-center gap-1.5 shadow-md shadow-black/20 active:scale-95 transition-all"
-                  >
-                    <MapPin className="w-3.5 h-3.5" /> Absen
-                  </button>
+                <p className="text-white/60 text-[12px] font-semibold">{greeting()},</p>
+                <h1 className="text-white text-[26px] font-extrabold tracking-tight leading-tight mt-0.5">{firstName}</h1>
+                <div className="flex items-center gap-2 mt-3">
+                  <span className="px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-[10px] font-bold text-white flex items-center gap-1.5">
+                    <CalendarDays className="w-3 h-3" />
+                    {stats ? `${stats.attendanceCount} hari hadir` : '– hari hadir'}
+                  </span>
+                  {user?.companyName && (
+                    <span className="px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-[10px] font-bold text-white/70 flex items-center gap-1.5 max-w-[46%]">
+                      <MapPin className="w-3 h-3 shrink-0" />
+                      <span className="truncate">{user.companyName}</span>
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
 
+            {/* ═══ WHITE SHEET melengkung (wave) menimpa hero ═══ */}
             <div className="relative -mt-8 flex-1 bg-white rounded-t-[32px] px-5 pt-6 pb-32 shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
               <HomeView
                 user={user}
@@ -216,7 +246,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
                 loading={statsLoading}
                 error={statsError}
                 onRetry={loadStats}
-                onGoAbsensi={() => handleTabChange('absensi')}
               />
             </div>
           </>
@@ -274,8 +303,8 @@ const NotifPop: React.FC<{ closing: boolean }> = ({ closing }) => (
 );
 
 /* ══════════════════════════════════════════════════════
-   HOME VIEW — chart mingguan + stats + info magang
-   Data dari dashboardService (logbook + absensi + izin)
+   HOME VIEW — tiket absensi monokrom navy
+   Urutan: header → KAMERA (atas) → jam → CTA → status GPS
    ══════════════════════════════════════════════════════ */
 interface HomeViewProps {
   user: any;
@@ -283,17 +312,23 @@ interface HomeViewProps {
   loading: boolean;
   error: string | null;
   onRetry: () => void;
-  onGoAbsensi: () => void;
 }
 
 const HomeView: React.FC<HomeViewProps> = ({ user, stats, error, onRetry }) => {
   const attendance = useTodayAttendance();
   const { today, acting, error: attError, gps, checkIn, checkOut } = attendance;
 
-  /* ── Selfie verifikasi (foto tidak dikirim ke server) ── */
   const [selfie, setSelfie] = useState<string | null>(null);
 
-  /* ── Geofence dari data user — preview klien, validasi final di server ── */
+  const [now, setNow] = useState(() => Date.now());
+  const hasIn = !!today?.checkInTime;
+  const hasOut = !!today?.checkOutTime;
+  useEffect(() => {
+    if (!hasIn || hasOut) return;
+    const t = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(t);
+  }, [hasIn, hasOut]);
+
   const fence = user?.companyLocation || null;
   const hasFence = !!(fence && fence.lat != null && fence.lng != null);
   const dist = gps.status === 'ok' && hasFence ? distanceM({ lat: gps.lat, lng: gps.lng }, fence) : null;
@@ -301,22 +336,29 @@ const HomeView: React.FC<HomeViewProps> = ({ user, stats, error, onRetry }) => {
   const reqSelfie = !!selfie;
   const reqLokasi = gps.status === 'ok' && inFence;
   const allReq = reqSelfie && reqLokasi;
+  const needsVerify = !hasIn || !hasOut;
+
+  const gpsText =
+    gps.status === 'loading' ? 'Mendeteksi lokasi GPS...' :
+    gps.status === 'error' ? 'GPS bermasalah — cek izin lokasi' :
+    hasFence ? (inFence ? 'Kamu di area tempat magang' : 'Kamu di luar radius magang') :
+    'Lokasi GPS terdeteksi';
+
+  const durText = hasIn && hasOut
+    ? fmtDur(new Date(today!.checkOutTime).getTime() - new Date(today!.checkInTime).getTime())
+    : hasIn
+      ? fmtDur(now - new Date(today!.checkInTime).getTime())
+      : '–';
 
   const doCheckIn = async () => {
     if (!allReq) return;
     const ok = await checkIn();
-    if (ok) {
-      setSelfie(null);
-      onRetry();
-    }
+    if (ok) { setSelfie(null); onRetry(); }
   };
   const doCheckOut = async () => {
     if (!allReq) return;
     const ok = await checkOut();
-    if (ok) {
-      setSelfie(null);
-      onRetry();
-    }
+    if (ok) { setSelfie(null); onRetry(); }
   };
 
   return (
@@ -336,134 +378,141 @@ const HomeView: React.FC<HomeViewProps> = ({ user, stats, error, onRetry }) => {
         </div>
       )}
 
-      {/* ═══ CARD ABSENSI HARI INI ═══ */}
-      <div className="rise-in bg-white rounded-[20px] border border-mist/60 shadow-sm p-4 mt-4" style={{ animationDelay: '200ms' }}>
-        <div className="flex items-center justify-between">
-          <p className="text-[10px] font-bold text-navy/50 uppercase tracking-wide">Absensi Hari Ini</p>
-          <span className="text-[10px] font-bold text-navy/50 tabular-nums">
-            {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}
-          </span>
-        </div>
+      {/* ═══ TIKET ABSENSI ═══ */}
+      <div className="rise-in relative bg-white rounded-[24px] border border-mist/60 shadow-[0_16px_40px_rgba(10,25,60,0.10)] overflow-hidden">
 
-        {attError && (
-          <div className="mt-3 p-2.5 bg-red-50 border border-red-200 rounded-[12px] flex items-start gap-2">
-            <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
-            <p className="text-[10px] font-semibold text-red-600 leading-relaxed">{attError}</p>
+        <div className="px-5 pt-4 pb-5">
+          {/* header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[9px] font-extrabold text-navy/40 uppercase tracking-[0.14em]">Absensi Hari Ini</p>
+              <p className="text-[13px] font-extrabold text-navy capitalize mt-0.5">
+                {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' })}
+              </p>
+            </div>
+            <StatusBadge hasIn={hasIn} hasOut={hasOut} />
           </div>
-        )}
 
-        {/* ── Kamera selfie verifikasi (compact, tidak dikirim ke server) ── */}
-        <div className="mt-3">
-          <SelfieCamera selfie={selfie} onSelfie={setSelfie} compact />
-        </div>
+          {attError && (
+            <div className="mt-3 p-2.5 bg-red-50 border border-red-200 rounded-[12px] flex items-start gap-2">
+              <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
+              <p className="text-[10px] font-semibold text-red-600 leading-relaxed">{attError}</p>
+            </div>
+          )}
 
-        {/* ── Checklist syarat (sama seperti tab Absensi) ── */}
-        <div className="mt-3 flex flex-col gap-1.5">
-          <div className="flex items-center gap-2">
-            {reqSelfie ? <CheckCircle2 className="w-3.5 h-3.5 text-navy" /> : <XCircle className="w-3.5 h-3.5 text-navy/30" />}
-            <p className={`text-[10px] font-bold ${reqSelfie ? 'text-navy' : 'text-navy/40'}`}>Foto selfie terambil</p>
+          {/* ── KAMERA DI ATAS ── hanya saat masih ada aksi pending */}
+          {needsVerify && (
+            <div className="mt-4">
+              <SelfieCamera selfie={selfie} onSelfie={setSelfie} compact />
+            </div>
+          )}
+
+          {/* jam masuk ─ durasi ─ jam pulang */}
+          <div className="grid grid-cols-[1fr_auto_1fr] items-end mt-5">
+            <div>
+              <p className="text-[8px] font-extrabold uppercase tracking-[0.14em] text-navy/40">Masuk</p>
+              <p className={`text-[24px] font-extrabold tabular-nums leading-none mt-1.5 ${hasIn ? 'text-navy' : 'text-navy/20'}`}>
+                {hasIn ? fmtTimeID(today!.checkInTime) : '--:--'}
+              </p>
+            </div>
+
+            <div className="flex flex-col items-center px-3 pb-0.5">
+              <span className={`relative px-2 py-1 rounded-full border text-[8px] font-extrabold tabular-nums flex items-center gap-1 ${
+                hasIn ? 'bg-navy/5 border-navy/15 text-navy' : 'bg-white border-mist/60 text-navy/30'
+              }`}>
+                {hasIn && !hasOut && <span className="w-1 h-1 rounded-full bg-navy animate-pulse" />}
+                {durText}
+              </span>
+              <div className="w-12 border-t-2 border-dashed border-mist mt-2" />
+            </div>
+
+            <div className="text-right">
+              <p className="text-[8px] font-extrabold uppercase tracking-[0.14em] text-navy/40">Pulang</p>
+              <p className={`text-[24px] font-extrabold tabular-nums leading-none mt-1.5 ${hasOut ? 'text-navy' : 'text-navy/20'}`}>
+                {hasOut ? fmtTimeID(today!.checkOutTime) : '--:--'}
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            {reqLokasi ? <CheckCircle2 className="w-3.5 h-3.5 text-navy" /> : <XCircle className="w-3.5 h-3.5 text-navy/30" />}
-            <p className={`text-[10px] font-bold ${reqLokasi ? 'text-navy' : 'text-navy/40'}`}>
-              {gps.status === 'loading' && 'Mendeteksi lokasi GPS...'}
-              {gps.status === 'error' && `GPS: ${gps.message}`}
-              {gps.status === 'ok' && (
-                hasFence
-                  ? `Dalam radius ${fence?.radius ?? 500} m (${dist} m dari tempat PKL)`
-                  : 'Lokasi GPS terdeteksi (geofence belum diatur)'
+
+          {/* CTA kontekstual / strip selesai */}
+          {!hasOut ? (
+            <button
+              onClick={hasIn ? doCheckOut : doCheckIn}
+              disabled={!allReq || acting !== null || attendance.loading}
+              className="mt-5 w-full bg-navy text-white rounded-[14px] py-3.5 flex items-center justify-center gap-2 shadow-md shadow-navy/25 active:scale-[0.98] transition-all disabled:opacity-40 disabled:shadow-none"
+            >
+              {acting !== null
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : hasIn ? <LogOut className="w-4 h-4" /> : <LogIn className="w-4 h-4" />}
+              <span className="text-[12px] font-extrabold">
+                {acting === 'in' ? 'Mengirim absen masuk...' :
+                 acting === 'out' ? 'Mengirim absen pulang...' :
+                 hasIn ? 'Absen Pulang' : 'Absen Masuk'}
+              </span>
+            </button>
+          ) : (
+            <div className="mt-5 flex items-center justify-center gap-2 rounded-[14px] bg-navy/5 border border-navy/15 px-3 py-3.5">
+              <CheckCircle2 className="w-4 h-4 text-navy shrink-0" />
+              <p className="text-[11px] font-extrabold text-navy tabular-nums">Absensi lengkap · {durText}</p>
+            </div>
+          )}
+
+          {/* status GPS — kaki tiket */}
+          {needsVerify && (
+            <div className="mt-4 pt-3.5 border-t border-dashed border-mist flex items-center gap-2">
+              <span className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
+                reqLokasi ? 'bg-navy/10 text-navy' : 'bg-shell text-navy/40'
+              }`}>
+                {gps.status === 'loading' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MapPin className="w-3.5 h-3.5" />}
+              </span>
+              <p className={`flex-1 text-[10px] font-semibold truncate ${reqLokasi ? 'text-navy/70' : 'text-navy/40'}`}>
+                {gpsText}
+              </p>
+              {dist !== null && hasFence && (
+                <span className={`px-2 py-1 rounded-full text-[9px] font-extrabold tabular-nums shrink-0 ${
+                  inFence ? 'bg-navy/5 text-navy' : 'bg-red-50 text-red-500'
+                }`}>
+                  {dist} m
+                </span>
               )}
-            </p>
-          </div>
+            </div>
+          )}
         </div>
-
-        <div className="grid grid-cols-2 gap-3 mt-3">
-          {/* ── MASUK ── */}
-          <div>
-            {today?.checkInTime ? (
-              <div className="bg-green-50 border border-green-200 rounded-[14px] px-3 py-2.5">
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-                  <p className="text-[9px] font-bold uppercase tracking-wide text-green-700/70">Masuk · Tercatat</p>
-                </div>
-                <p className="text-[16px] font-extrabold text-green-700 tabular-nums mt-1">
-                  {fmtTimeID(today.checkInTime) ?? '–'}
-                </p>
-              </div>
-            ) : (
-              <button
-                onClick={doCheckIn}
-                disabled={!allReq || acting !== null || attendance.loading}
-                className="w-full bg-navy text-white rounded-[14px] px-3 py-3 flex flex-col items-center gap-1 shadow-md shadow-navy/25 active:scale-[0.98] transition-all disabled:opacity-50"
-              >
-                {acting === 'in'
-                  ? <Loader2 className="w-4 h-4 animate-spin" />
-                  : <LogIn className="w-4 h-4" />}
-                <span className="text-[11px] font-extrabold">
-                  {acting === 'in' ? 'Mengirim...' : 'Absen Masuk'}
-                </span>
-              </button>
-            )}
-          </div>
-
-          {/* ── PULANG ── */}
-          <div>
-            {today?.checkOutTime ? (
-              <div className="bg-green-50 border border-green-200 rounded-[14px] px-3 py-2.5">
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-                  <p className="text-[9px] font-bold uppercase tracking-wide text-green-700/70">Pulang · Tercatat</p>
-                </div>
-                <p className="text-[16px] font-extrabold text-green-700 tabular-nums mt-1">
-                  {fmtTimeID(today.checkOutTime) ?? '–'}
-                </p>
-              </div>
-            ) : (
-              <button
-                onClick={doCheckOut}
-                disabled={!today?.checkInTime || !allReq || acting !== null || attendance.loading}
-                className="w-full rounded-[14px] px-3 py-3 flex flex-col items-center gap-1 border-2 border-navy/70 text-navy active:scale-[0.98] transition-all disabled:opacity-35 disabled:shadow-none"
-              >
-                {acting === 'out'
-                  ? <Loader2 className="w-4 h-4 animate-spin" />
-                  : <LogOut className="w-4 h-4" />}
-                <span className="text-[11px] font-extrabold">
-                  {acting === 'out' ? 'Mengirim...' : 'Absen Pulang'}
-                </span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {!allReq && !attendance.loading && !attError && !today?.checkOutTime && (
-          <p className="mt-2.5 text-[9px] font-semibold text-navy/40 flex items-center gap-1">
-            <AlertCircle className="w-3 h-3" /> Lengkapi selfie + lokasi untuk membuka tombol absen.
-          </p>
-        )}
       </div>
 
-      {/* ═══ REKAPAN HARIAN (tabel bulanan) ═══ */}
-      <RekapanHarian />
+      {/* ═══ RINGKASAN — monokrom ═══ */}
+      <div className="rise-in mt-4 bg-white rounded-[20px] border border-mist/60 shadow-sm grid grid-cols-3 divide-x divide-mist/60" style={{ animationDelay: '150ms' }}>
+        <div className="py-4 flex flex-col items-center gap-1.5">
+          <span className="w-7 h-7 rounded-full bg-navy/5 text-navy/60 flex items-center justify-center">
+            <BookOpen className="w-3.5 h-3.5" />
+          </span>
+          <p className="text-[17px] font-extrabold text-navy tabular-nums leading-none">{stats ? stats.totalLogbook : '–'}</p>
+          <p className="text-[8px] font-extrabold text-navy/45 uppercase tracking-wide">Logbook</p>
+        </div>
+        <div className="py-4 flex flex-col items-center gap-1.5">
+          <span className="w-7 h-7 rounded-full bg-navy/5 text-navy/60 flex items-center justify-center">
+            <RefreshCw className="w-3.5 h-3.5" />
+          </span>
+          <p className="text-[17px] font-extrabold text-navy tabular-nums leading-none">{stats ? stats.revisiCount : '–'}</p>
+          <p className="text-[8px] font-extrabold text-navy/45 uppercase tracking-wide">Review</p>
+        </div>
+        <div className="py-4 flex flex-col items-center gap-1.5">
+          <span className="w-7 h-7 rounded-full bg-navy/5 text-navy/60 flex items-center justify-center">
+            <FileCheck className="w-3.5 h-3.5" />
+          </span>
+          <p className="text-[17px] font-extrabold text-navy tabular-nums leading-none">{stats ? stats.izinPendingCount : '–'}</p>
+          <p className="text-[8px] font-extrabold text-navy/45 uppercase tracking-wide">Izin</p>
+        </div>
+      </div>
 
-      <div className="rise-in grid grid-cols-3 gap-3 mt-4" style={{ animationDelay: '400ms' }}>
-        <div className="bg-white rounded-[16px] border border-mist/60 shadow-sm p-3 text-center">
-          <p className="text-lg font-extrabold text-navy tabular-nums">{stats ? stats.totalLogbook : '–'}</p>
-          <p className="text-[9px] font-bold text-navy/50 mt-0.5 uppercase tracking-wide">Logbook</p>
-        </div>
-        <div className="bg-white rounded-[16px] border border-mist/60 shadow-sm p-3 text-center">
-          <p className="text-lg font-extrabold text-navy tabular-nums">{stats ? stats.revisiCount : '–'}</p>
-          <p className="text-[9px] font-bold text-navy/50 mt-0.5 uppercase tracking-wide">Review</p>
-        </div>
-        <div className="bg-white rounded-[16px] border border-mist/60 shadow-sm p-3 text-center">
-          <p className="text-lg font-extrabold text-navy tabular-nums">{stats ? stats.izinPendingCount : '–'}</p>
-          <p className="text-[9px] font-bold text-navy/50 mt-0.5 uppercase tracking-wide">Izin</p>
-        </div>
+      {/* ═══ REKAP ═══ */}
+      <div className="rise-in mt-6" style={{ animationDelay: '250ms' }}>
+        <RekapanHarian />
       </div>
     </>
   );
 };
 
-/* placeholder untuk tab lain yang belum dibangun (profil sudah ada sendiri) */
 const PlaceholderView: React.FC<{ tab: TabId }> = ({ tab }) => {
   const meta = TABS.find(t => t.id === tab)!;
   const Icon = meta.icon;

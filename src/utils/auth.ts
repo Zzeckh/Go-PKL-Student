@@ -11,8 +11,20 @@ const ONBOARD_KEY = 'gopkl_onboarded';
 export const getToken = (): string | null =>
   sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
 
+/* Store tujuan & store lawan.
+   Salaman di store SATUNYA selalu dihapus, supaya `pkl_token` dan `gopkl_user`
+   tidak pernah terpisah antar store (dulu: user bisa tersisa di localStorage
+   sedangkan token hanya di sessionStorage → dashboard hidup tanpa token →
+   semua request 401 "Token tidak ditemukan."). */
+const storeOf = (remember: boolean) => (remember ? localStorage : sessionStorage);
+const otherStoreOf = (remember: boolean) => (remember ? sessionStorage : localStorage);
+
+/* true = token disimpan di localStorage ("Ingat saya"), false = sessionStorage */
+export const isRememberToken = (): boolean => localStorage.getItem(TOKEN_KEY) !== null;
+
 export const setToken = (token: string, remember: boolean) => {
-  (remember ? localStorage : sessionStorage).setItem(TOKEN_KEY, token);
+  storeOf(remember).setItem(TOKEN_KEY, token);
+  otherStoreOf(remember).removeItem(TOKEN_KEY);
 };
 
 export const clearAuth = () => {
@@ -35,7 +47,8 @@ export const readUser = (): any => {
 };
 
 export const saveUser = (user: any, remember: boolean) => {
-  (remember ? localStorage : sessionStorage).setItem(USER_KEY, JSON.stringify(user));
+  storeOf(remember).setItem(USER_KEY, JSON.stringify(user));
+  otherStoreOf(remember).removeItem(USER_KEY);
 };
 
 /* ── Onboarding flag: tandai bahwa user sudah pernah login sekali ── */

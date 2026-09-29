@@ -1,21 +1,33 @@
 import { useState, useEffect } from 'react';
 import { LoginScreen } from './components/LoginScreen.tsx';
 import { StudentDashboard } from './components/StudentDashboard.tsx';
-import { readUser, clearAuth, saveUser, getToken } from './utils/auth.ts';
+import { readUser, clearAuth, saveUser, getToken, isRememberToken } from './utils/auth.ts';
 import { authService } from './services/auth.ts';
 
 export default function App() {
-  const [user, setUser] = useState<any>(() => readUser());
+  /* State awal: user hanya dianggap login kalau tokennya ikut ada.
+     Mencegah dashboard sempat render (dan menembak request 401) sebelum
+     efek verifikasi di bawah sempat berjalan. */
+  const [user, setUser] = useState<any>(() => (getToken() ? readUser() : null));
 
   /* ── Auto-login: kalau ada token, verifikasi via /api/auth/me ──
      Sukses → refresh data user (nama, kelas, companyLocation bisa berubah).
      Gagal (token expired/invalid) → clearAuth → kembali ke login. */
   useEffect(() => {
     const token = getToken();
-    if (!token) return;
+    if (!token) {
+      /* Token hilang tapi data user lama masih tersimpan → JANGAN biarkan
+         dashboard tampil tanpa token (semua request pasti 401
+         "Token tidak ditemukan"). Bersihkan, kembali ke layar login. */
+      if (readUser()) {
+        clearAuth();
+        setUser(null);
+      }
+      return;
+    }
     authService.getMe().then(u => {
       if (u) {
-        if (!readUser()) saveUser(u, true);
+        if (!readUser()) saveUser(u, isRememberToken());
         setUser(u);
       } else {
         clearAuth();
@@ -33,8 +45,11 @@ export default function App() {
      Persist ke storage yang sama dengan lokasi token (remember / session). */
   const handleUserUpdate = (u: any) => {
     setUser(u);
-    const remember = localStorage.getItem('pkl_token') !== null;
-    saveUser(u, remember);
+    /* Simpan user di store yang SAMA dengan tempat token.
+       Kalau token sudah tidak ada, jangan tulis apa pun — agar tidak tercipta
+       `gopkl_user` tanpa `pkl_token` (penyebab 401 "Token tidak ditemukan"). */
+    if (!getToken()) return;
+    saveUser(u, isRememberToken());
   };
 
   const handleSuccess = (u: any) => {
