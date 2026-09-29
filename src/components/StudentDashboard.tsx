@@ -13,6 +13,7 @@ import { dashboardService, type DashboardStats } from '../services/dashboard';
 interface StudentDashboardProps {
   user: any;
   onLogout: () => void;
+  onUserUpdate?: (u: any) => void;
 }
 
 type Notif = {
@@ -85,7 +86,7 @@ const PageSweep: React.FC<{ icon: React.ElementType; label: string }> = ({ icon:
   </div>
 );
 
-export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout }) => {
+export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogout, onUserUpdate }) => {
   const [tab, setTab] = useState<TabId>('home');
   const [pending, setPending] = useState<TabId | null>(null);
   const [cover, setCover] = useState(false);
@@ -222,7 +223,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
             ) : tab === 'izin' ? (
               <IzinView />
             ) : tab === 'profil' ? (
-              <ProfileView user={user} onLogout={onLogout} />
+              <ProfileView user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} />
             ) : (
               <PlaceholderView tab={tab} />
             )}

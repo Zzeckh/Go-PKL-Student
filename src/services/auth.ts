@@ -11,6 +11,7 @@ export interface User {
   id: number;
   name: string;
   email: string;
+  whatsapp: string | null;
   role: string;
   companyName: string | null;
   companyAddress: string | null;

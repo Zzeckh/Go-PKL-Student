@@ -29,6 +29,14 @@ export default function App() {
     setUser(null);
   };
 
+  /* ── Update data user di context (mis. setelah edit email/whatsapp di profil) ──
+     Persist ke storage yang sama dengan lokasi token (remember / session). */
+  const handleUserUpdate = (u: any) => {
+    setUser(u);
+    const remember = localStorage.getItem('pkl_token') !== null;
+    saveUser(u, remember);
+  };
+
   const handleSuccess = (u: any) => {
     setUser(u);
   };
@@ -37,5 +45,5 @@ export default function App() {
     return <LoginScreen onSuccess={handleSuccess} />;
   }
 
-  return <StudentDashboard user={user} onLogout={handleLogout} />;
+  return <StudentDashboard user={user} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />;
 }
