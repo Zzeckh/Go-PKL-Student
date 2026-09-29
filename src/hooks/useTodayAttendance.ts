@@ -29,6 +29,11 @@ const getCoords = (): Promise<GeolocationCoordinates> =>
     );
   });
 
+export type GpsState =
+  | { status: 'loading' }
+  | { status: 'ok'; lat: number; lng: number; accuracy: number }
+  | { status: 'error'; message: string };
+
 export interface TodayAttendance {
   /** Baris absensi hari ini (null = belum ada) */
   today: Absensi | null;
@@ -37,6 +42,9 @@ export interface TodayAttendance {
   error: string | null;
   /** true sedang proses check-in / check-out (spinner di tombol) */
   acting: 'in' | 'out' | null;
+  /** GPS live untuk preview jarak ke geofence (seperti AbsensiView) */
+  gps: GpsState;
+  refreshGps: () => void;
   checkIn: () => Promise<boolean>;
   checkOut: () => Promise<boolean>;
   reload: () => Promise<void>;
@@ -52,6 +60,24 @@ export const useTodayAttendance = (): TodayAttendance => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [acting, setActing] = useState<'in' | 'out' | null>(null);
+  const [gps, setGps] = useState<GpsState>({ status: 'loading' });
+
+  const refreshGps = useCallback(() => {
+    setGps({ status: 'loading' });
+    if (!('geolocation' in navigator)) {
+      setGps({ status: 'error', message: 'Perangkat tidak mendukung GPS.' });
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      pos => setGps({ status: 'ok', lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: Math.round(pos.coords.accuracy) }),
+      err => setGps({ status: 'error', message: err.code === err.PERMISSION_DENIED ? 'Izin lokasi ditolak.' : 'Lokasi tidak ditemukan.' }),
+      GEO_OPTIONS
+    );
+  }, []);
+
+  useEffect(() => {
+    refreshGps();
+  }, [refreshGps]);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -103,5 +129,5 @@ export const useTodayAttendance = (): TodayAttendance => {
     }
   }, []);
 
-  return { today, loading, error, acting, checkIn, checkOut, reload };
+  return { today, loading, error, acting, gps, refreshGps, checkIn, checkOut, reload };
 };
