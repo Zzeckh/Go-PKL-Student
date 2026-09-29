@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  LogIn, MapPin, RefreshCw, Loader2, CheckCircle2, AlertCircle, History,
+  LogIn, LogOut, MapPin, RefreshCw, Loader2, CheckCircle2, AlertCircle, History,
   Camera, Building2, XCircle, CalendarDays, X,
 } from 'lucide-react';
+import { useTodayAttendance } from '../hooks/useTodayAttendance';
 import { absensiService, type Absensi } from '../services/absensi';
 import { ABSENSI_STATUS_MAP, statusView } from '../utils/statusMap';
 import { localToday, toISODate, fmtTimeID, fmtDM } from '../utils/date';
@@ -46,6 +47,8 @@ export const AbsensiView: React.FC<AbsensiViewProps> = ({ user }) => {
 
   const [gps, setGps] = useState<Gps>({ status: 'loading' });
   const [today, setToday] = useState<Absensi | null>(null);
+  const todayCheckout = useTodayAttendance();
+  const todayCheckoutBusy = todayCheckout.acting === 'out';
   const [history, setHistory] = useState<Absensi[]>([]);
   const [listLoading, setListLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
@@ -168,6 +171,23 @@ export const AbsensiView: React.FC<AbsensiViewProps> = ({ user }) => {
     } finally {
       setBusy(false);
       setSelfie(null);
+    }
+  };
+
+  /* Absen pulang — pakai hook bersama (geolocation + POST /absensi/checkout);
+     hasil ditimpa ke state lokal today agar riwayat & label ikut segar */
+  const doCheckout = async () => {
+    if (gps.status !== 'ok') {
+      setSubmitError('Lokasi GPS belum siap. Tunggu sebentar lalu coba lagi.');
+      return;
+    }
+    setSubmitError(null);
+    const ok = await todayCheckout.checkOut();
+    if (ok && todayCheckout.today) {
+      setToday(todayCheckout.today);
+      setHistory(prev => prev.map(a => (a.id === todayCheckout.today!.id ? todayCheckout.today! : a)));
+    } else if (!ok) {
+      setSubmitError(todayCheckout.error || 'Gagal absen pulang. Coba lagi.');
     }
   };
 
@@ -321,6 +341,32 @@ export const AbsensiView: React.FC<AbsensiViewProps> = ({ user }) => {
             {busy ? 'Mengirim...' : today ? (checkInLabel ? `Masuk ${checkInLabel}` : 'Sudah absen hari ini') : 'Absen Masuk'}
           </span>
         </button>
+
+        {/* ═══ BLOK ABSEN PULANG — muncul setelah check-in sukses ═══ */}
+        {today?.checkInTime && (
+          today?.checkOutTime ? (
+            <div className="mt-3 bg-green-50 border border-green-200 rounded-[14px] px-3 py-2.5 flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-green-600" />
+                <p className="text-[10px] font-bold uppercase tracking-wide text-green-700/70">Pulang · Tercatat</p>
+              </div>
+              <p className="text-[16px] font-extrabold text-green-700 tabular-nums">
+                {fmtTimeID(today.checkOutTime) ?? '–'}
+              </p>
+            </div>
+          ) : (
+            <button
+              onClick={doCheckout}
+              disabled={!allReq || todayCheckoutBusy || listLoading}
+              className="w-full mt-3 rounded-[16px] py-4 flex flex-col items-center gap-1 border-2 border-navy/70 text-navy transition-all active:scale-[0.97] disabled:opacity-40"
+            >
+              {todayCheckoutBusy ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogOut className="w-5 h-5" />}
+              <span className="text-xs font-extrabold">
+                {todayCheckoutBusy ? 'Mengirim...' : 'Absen Pulang'}
+              </span>
+            </button>
+          )
+        )}
 
         {listLoading && !today && (
           <p className="mt-3 flex items-center justify-center gap-1.5 text-[9px] font-semibold text-navy/40">

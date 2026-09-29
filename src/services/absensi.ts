@@ -8,10 +8,20 @@ export interface Absensi {
   date: string; // ISO datetime (date-only di server) → slice(0,10) untuk YYYY-MM-DD
   status: AbsensiStatus;
   checkInTime: string | null;
+  checkOutTime?: string | null;
   imageUrl: string | null;
   latitude: number | null;
   longitude: number | null;
   createdAt: string;
+}
+
+export interface CheckoutResponse {
+  id: number;
+  userId: number;
+  date: string;
+  status: AbsensiStatus;
+  checkInTime: string | null;
+  checkOutTime: string | null;
 }
 
 export const absensiService = {
@@ -25,8 +35,18 @@ export const absensiService = {
     });
   },
 
+  /** Check-out (absen pulang) — backend validasi geofence, 404 tanpa check-in, 409 duplikat */
+  checkout(latitude: number, longitude: number): Promise<CheckoutResponse> {
+    return api.post<CheckoutResponse>('/absensi/checkout', { latitude, longitude });
+  },
+
   async list(): Promise<Absensi[]> {
     return api.get<Absensi[]>('/absensi');
+  },
+
+  /** List absensi satu bulan (YYYY-MM) — untuk Rekapan Harian */
+  async listByMonth(month: string): Promise<Absensi[]> {
+    return api.get<Absensi[]>(`/absensi?month=${encodeURIComponent(month)}`);
   },
 
   async getToday(): Promise<Absensi | null> {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Bell, X, BookOpen, FileCheck, MapPin, Building2, Clock, AlertCircle, RefreshCw,
+  Bell, X, BookOpen, FileCheck, MapPin, AlertCircle, RefreshCw,
+  LogIn, LogOut, Loader2, CheckCircle2,
 } from 'lucide-react';
 import { BottomNav, TABS, type TabId } from './BottomNav';
 import { TopoPattern, WAVE_TOP_FILL, WAVE_BOTTOM_FILL } from './Decor';
@@ -8,7 +9,10 @@ import { AbsensiView } from './Absensi';
 import { LogbookView } from './Logbook';
 import { IzinView } from './Izin';
 import { ProfileView } from './Profile';
+import { RekapanHarian } from './RekapanHarian';
+import { useTodayAttendance } from '../hooks/useTodayAttendance';
 import { dashboardService, type DashboardStats } from '../services/dashboard';
+import { fmtTimeID } from '../utils/date';
 
 interface StudentDashboardProps {
   user: any;
@@ -205,12 +209,11 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
 
             <div className="relative -mt-8 flex-1 bg-white rounded-t-[32px] px-5 pt-6 pb-32 shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
               <HomeView
-                name={firstName}
-                user={user}
                 stats={stats}
                 loading={statsLoading}
                 error={statsError}
                 onRetry={loadStats}
+                onGoAbsensi={() => handleTabChange('absensi')}
               />
             </div>
           </>
@@ -272,17 +275,25 @@ const NotifPop: React.FC<{ closing: boolean }> = ({ closing }) => (
    Data dari dashboardService (logbook + absensi + izin)
    ══════════════════════════════════════════════════════ */
 interface HomeViewProps {
-  name: string;
-  user: any;
   stats: DashboardStats | null;
   loading: boolean;
   error: string | null;
   onRetry: () => void;
+  onGoAbsensi: () => void;
 }
 
-const HomeView: React.FC<HomeViewProps> = ({ name, user, stats, loading, error, onRetry }) => {
-  const week = stats?.weekChart ?? [];
-  const maxCount = Math.max(1, ...week.map(d => d.count));
+const HomeView: React.FC<HomeViewProps> = ({ stats, error, onRetry }) => {
+  const attendance = useTodayAttendance();
+  const { today, acting, error: attError, checkIn, checkOut } = attendance;
+
+  const doCheckIn = async () => {
+    const ok = await checkIn();
+    if (ok) onRetry();
+  };
+  const doCheckOut = async () => {
+    const ok = await checkOut();
+    if (ok) onRetry();
+  };
 
   return (
     <>
@@ -301,43 +312,91 @@ const HomeView: React.FC<HomeViewProps> = ({ name, user, stats, loading, error, 
         </div>
       )}
 
-      <div className="rise-in bg-navy rounded-[20px] p-4 shadow-md shadow-navy/20 mt-4" style={{ animationDelay: '200ms' }}>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-white/60 text-[10px] font-semibold">Progres Logbook · {name}</p>
-            <p className="text-white text-sm font-extrabold mt-0.5 tracking-tight">Minggu Ini</p>
-            {loading && !stats && (
-              <p className="text-white/40 text-[9px] font-semibold mt-0.5 flex items-center gap-1">
-                <RefreshCw className="w-2.5 h-2.5 animate-spin" /> Memuat statistik...
-              </p>
-            )}
-          </div>
-          <span className="shrink-0 px-2 py-1 rounded-full bg-white/10 border border-white/15 text-[9px] font-bold text-white/80 tabular-nums">
-            {stats ? `${stats.totalLogbook} entri` : '–'}
+      {/* ═══ CARD ABSENSI HARI INI ═══ */}
+      <div className="rise-in bg-white rounded-[20px] border border-mist/60 shadow-sm p-4 mt-4" style={{ animationDelay: '200ms' }}>
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-bold text-navy/50 uppercase tracking-wide">Absensi Hari Ini</p>
+          <span className="text-[10px] font-bold text-navy/50 tabular-nums">
+            {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}
           </span>
         </div>
-        <div className="flex items-end justify-between gap-1.5 mt-4">
-          {week.map((d, i) => {
-            const height = d.count === 0 ? 3 : Math.round((d.count / maxCount) * 56);
-            return (
-              <div key={d.label} className="flex-1 flex flex-col items-center">
-                <span className="text-[8px] font-bold text-white/60 tabular-nums h-3">{d.count > 0 ? d.count : ''}</span>
-                <div className="w-full h-14 flex items-end justify-center mt-0.5">
-                  <div
-                    className={`bar-grow w-2.5 rounded-full ${d.today ? 'bg-white shadow-md shadow-black/20' : 'bg-white/35'}`}
-                    style={{ height: `${height}px`, animationDelay: `${300 + i * 60}ms` }}
-                  />
+
+        {attError && (
+          <div className="mt-3 p-2.5 bg-red-50 border border-red-200 rounded-[12px] flex items-start gap-2">
+            <AlertCircle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
+            <p className="text-[10px] font-semibold text-red-600 leading-relaxed">{attError}</p>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-3 mt-3">
+          {/* ── MASUK ── */}
+          <div>
+            {today?.checkInTime ? (
+              <div className="bg-green-50 border border-green-200 rounded-[14px] px-3 py-2.5">
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-green-700/70">Masuk · Tercatat</p>
                 </div>
-                <div className="w-full border-t border-white/10 mt-1 pt-1">
-                  <p className={`text-center text-[8px] font-bold tabular-nums ${d.today ? 'text-white' : 'text-white/50'}`}>{d.label}</p>
-                </div>
+                <p className="text-[16px] font-extrabold text-green-700 tabular-nums mt-1">
+                  {fmtTimeID(today.checkInTime) ?? '–'}
+                </p>
               </div>
-            );
-          })}
+            ) : (
+              <button
+                onClick={doCheckIn}
+                disabled={acting !== null || attendance.loading}
+                className="w-full bg-navy text-white rounded-[14px] px-3 py-3 flex flex-col items-center gap-1 shadow-md shadow-navy/25 active:scale-[0.98] transition-all disabled:opacity-50"
+              >
+                {acting === 'in'
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : <LogIn className="w-4 h-4" />}
+                <span className="text-[11px] font-extrabold">
+                  {acting === 'in' ? 'Mengirim...' : 'Absen Masuk'}
+                </span>
+              </button>
+            )}
+          </div>
+
+          {/* ── PULANG ── */}
+          <div>
+            {today?.checkOutTime ? (
+              <div className="bg-green-50 border border-green-200 rounded-[14px] px-3 py-2.5">
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-green-700/70">Pulang · Tercatat</p>
+                </div>
+                <p className="text-[16px] font-extrabold text-green-700 tabular-nums mt-1">
+                  {fmtTimeID(today.checkOutTime) ?? '–'}
+                </p>
+              </div>
+            ) : (
+              <button
+                onClick={doCheckOut}
+                disabled={!today?.checkInTime || acting !== null || attendance.loading}
+                className="w-full rounded-[14px] px-3 py-3 flex flex-col items-center gap-1 border-2 border-navy/70 text-navy active:scale-[0.98] transition-all disabled:opacity-35 disabled:shadow-none"
+              >
+                {acting === 'out'
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : <LogOut className="w-4 h-4" />}
+                <span className="text-[11px] font-extrabold">
+                  {acting === 'out' ? 'Mengirim...' : 'Absen Pulang'}
+                </span>
+              </button>
+            )}
+          </div>
         </div>
+
+        {!today?.checkInTime && !attendance.loading && !attError && (
+          <p className="mt-2.5 text-[9px] font-semibold text-navy/40 flex items-center gap-1">
+            <MapPin className="w-3 h-3" /> Absen masuk & pulang memakai GPS — harus di dalam radius tempat PKL.
+          </p>
+        )}
       </div>
 
-      <div className="rise-in grid grid-cols-3 gap-3 mt-4" style={{ animationDelay: '300ms' }}>
+      {/* ═══ REKAPAN HARIAN (tabel bulanan) ═══ */}
+      <RekapanHarian />
+
+      <div className="rise-in grid grid-cols-3 gap-3 mt-4" style={{ animationDelay: '400ms' }}>
         <div className="bg-white rounded-[16px] border border-mist/60 shadow-sm p-3 text-center">
           <p className="text-lg font-extrabold text-navy tabular-nums">{stats ? stats.totalLogbook : '–'}</p>
           <p className="text-[9px] font-bold text-navy/50 mt-0.5 uppercase tracking-wide">Logbook</p>
@@ -349,20 +408,6 @@ const HomeView: React.FC<HomeViewProps> = ({ name, user, stats, loading, error, 
         <div className="bg-white rounded-[16px] border border-mist/60 shadow-sm p-3 text-center">
           <p className="text-lg font-extrabold text-navy tabular-nums">{stats ? stats.izinPendingCount : '–'}</p>
           <p className="text-[9px] font-bold text-navy/50 mt-0.5 uppercase tracking-wide">Izin</p>
-        </div>
-      </div>
-
-      <div className="rise-in bg-white rounded-[20px] border border-mist/60 shadow-sm p-4 mt-4" style={{ animationDelay: '400ms' }}>
-        <p className="text-[11px] font-extrabold text-navy">Info Magang</p>
-        <div className="mt-3 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-[12px] bg-navy text-white flex items-center justify-center shrink-0"><Building2 className="w-4 h-4" /></div>
-          <div className="min-w-0">
-            <p className="text-xs font-bold text-navy truncate">{user?.companyName || 'Belum ditentukan'}</p>
-            <p className="text-[10px] font-semibold text-navy/50 truncate">Pembimbing: {user?.teacherName || '—'}</p>
-          </div>
-        </div>
-        <div className="mt-3 flex items-center gap-1.5 text-[10px] font-semibold text-navy/60">
-          <Clock className="w-3 h-3" /> Senin–Jumat · 08:00–16:00
         </div>
       </div>
     </>
