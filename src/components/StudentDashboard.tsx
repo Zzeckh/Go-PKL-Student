@@ -342,10 +342,10 @@ const HomeView: React.FC<HomeViewProps> = ({ user, stats, error, onRetry }) => {
     hasFence ? (inFence ? 'Kamu di area tempat magang' : 'Kamu di luar radius magang') :
     'Lokasi GPS terdeteksi';
 
-  const durText = hasIn && hasOut
-    ? fmtDur(new Date(today!.checkOutTime).getTime() - new Date(today!.checkInTime).getTime())
-    : hasIn
-      ? fmtDur(now - new Date(today!.checkInTime).getTime())
+  const durText = hasIn && hasOut && today?.checkInTime && today.checkOutTime
+    ? fmtDur(new Date(today.checkOutTime).getTime() - new Date(today.checkInTime).getTime())
+    : hasIn && today?.checkInTime
+      ? fmtDur(now - new Date(today.checkInTime).getTime())
       : '–';
 
   const doCheckIn = async () => {

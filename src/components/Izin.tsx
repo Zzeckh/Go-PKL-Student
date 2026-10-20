@@ -43,6 +43,7 @@ export const IzinView: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>('semua');
+  const [typeFilter, setTypeFilter] = useState<'semua' | PermissionType>('semua');
   const [limit, setLimit] = useState(PAGE_SIZE);
 
   const [sheet, setSheet] = useState(false);
@@ -76,14 +77,18 @@ export const IzinView: React.FC = () => {
 
   useEffect(() => {
     setLimit(PAGE_SIZE);
-  }, [filter]);
+  }, [filter, typeFilter]);
 
   const total = entries.length;
   const countApproved = entries.filter(e => e.status === 'approved').length;
   const countPending = entries.filter(e => e.status === 'pending').length;
   const countRejected = entries.filter(e => e.status === 'rejected').length;
+  const countIzin = entries.filter(e => e.type === 'izin').length;
+  const countSakit = entries.filter(e => e.type === 'sakit').length;
 
-  const shown = filter === 'semua' ? entries : entries.filter(e => e.status === filter);
+  /* Filter status + filter kategori (izin/sakit) digabung */
+  const byStatus = filter === 'semua' ? entries : entries.filter(e => e.status === filter);
+  const shown = typeFilter === 'semua' ? byStatus : byStatus.filter(e => e.type === typeFilter);
   const visible = shown.slice(0, limit);
   const extended = limit > PAGE_SIZE;
 
@@ -243,6 +248,31 @@ export const IzinView: React.FC = () => {
           ))}
         </div>
 
+        {/* ═══ filter kategori: semua / izin / sakit ═══ */}
+        <div className="rise-in flex items-center gap-2 mt-2" style={{ animationDelay: '150ms' }}>
+          {([
+            { key: 'semua' as const, label: 'Semua', count: total },
+            { key: 'izin'  as const, label: 'Izin',  count: countIzin },
+            { key: 'sakit' as const, label: 'Sakit', count: countSakit },
+          ]).map(({ key, label, count }) => {
+            const active = typeFilter === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setTypeFilter(key)}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-full border text-[10px] font-extrabold transition-all active:scale-95 ${
+                  active
+                    ? 'bg-steel text-white border-steel shadow-md shadow-steel/25'
+                    : 'bg-white text-navy/60 border-mist/60'
+                }`}
+              >
+                {label}
+                <span className={`tabular-nums ${active ? 'text-white/70' : 'text-navy/40'}`}>{count}</span>
+              </button>
+            );
+          })}
+        </div>
+
         {/* error muat data */}
         {loadError && (
           <div className="rise-in bg-white rounded-[20px] border border-red-200 shadow-sm p-4 mt-4 flex items-center justify-between gap-3">
@@ -260,11 +290,15 @@ export const IzinView: React.FC = () => {
         )}
 
         {/* list pengajuan */}
-        <div key={filter} className="flex flex-col gap-3 mt-4">
+        <div key={`${filter}-${typeFilter}`} className="flex flex-col gap-3 mt-4">
           {!loading && !loadError && visible.length === 0 && (
             <div className="rise-in bg-white rounded-[20px] border border-mist/60 p-8 text-center" style={{ animationDelay: '250ms' }}>
               <FileText className="w-6 h-6 text-navy/30 mx-auto" />
-              <p className="text-[11px] font-bold text-navy/40 mt-2">Belum ada pengajuan di filter ini.</p>
+              <p className="text-[11px] font-bold text-navy/40 mt-2">
+                {total === 0
+                  ? 'Belum ada pengajuan perizinan.'
+                  : `Belum ada pengajuan ${typeFilter === 'semua' ? '' : `${typeFilter} `}di filter ini.`}
+              </p>
             </div>
           )}
 
@@ -287,10 +321,15 @@ export const IzinView: React.FC = () => {
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-bold text-navy leading-snug">
-                    {e.type === 'sakit' ? 'Sakit' : 'Izin'} · {fmtDM(e.date)}
-                  </p>
-                  <p className="text-[10px] font-semibold text-navy/50 mt-1 leading-relaxed">{e.reason}</p>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[8px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full shrink-0 ${
+                      e.type === 'sakit' ? 'bg-navy text-white' : 'bg-steel text-white'
+                    }`}>
+                      {e.type === 'sakit' ? 'Sakit' : 'Izin'}
+                    </span>
+                    <span className="text-[10px] font-bold text-navy/50">{fmtDM(e.date)}</span>
+                  </div>
+                  <p className="text-[11px] font-bold text-navy mt-1 leading-relaxed">{e.reason}</p>
                   {e.status === 'rejected' && e.rejectReason && (
                     <p className="mt-2 text-[9px] font-semibold text-navy/60 bg-shell border border-mist/60 rounded-[10px] px-2.5 py-1.5 leading-relaxed">
                       Alasan ditolak: {e.rejectReason}
