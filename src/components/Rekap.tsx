@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { CalendarDays, Clock, TrendingUp, Calendar } from 'lucide-react';
+import { CalendarDays, Clock, TrendingUp, Timer } from 'lucide-react';
+import { TopoPattern } from './Decor';
 import { RekapanHarian } from './RekapanHarian';
 import { absensiService } from '../services/absensi';
 
@@ -31,11 +32,12 @@ interface RekapViewProps {
 }
 
 /* ══════════════════════════════════════════════════════
-   REKAP VIEW — hero navy + ringkasan bulan ini +
-   tabel rekap bulanan (komponen RekapanHarian).
+   REKAP VIEW — header POLA SAMA DENGAN Izin:
+   label kecil ber-icon → judul 3xl + angka besar kanan →
+   3 chip kaca statistik. Sheet langsung tabel rekap.
    ══════════════════════════════════════════════════════ */
 export const RekapView: React.FC<RekapViewProps> = () => {
-  const [stats, setStats] = useState<{ hadir: number; totalMinutes: number } | null>(null);
+  const [stats, setStats] = useState<{ hadir: number; totalMinutes: number; maxMinutes: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -47,25 +49,26 @@ export const RekapView: React.FC<RekapViewProps> = () => {
         if (cancelled) return;
         let totalMinutes = 0;
         let hadir = 0;
+        let maxMinutes = 0;
         for (const r of rows) {
           const inT = r.checkInTime ? new Date(r.checkInTime).getTime() : NaN;
           const outT = r.checkOutTime ? new Date(r.checkOutTime).getTime() : NaN;
           if (!Number.isNaN(inT) && !Number.isNaN(outT) && outT > inT) {
-            totalMinutes += Math.round((outT - inT) / 60000);
+            const mins = Math.round((outT - inT) / 60000);
+            totalMinutes += mins;
             hadir += 1;
+            if (mins > maxMinutes) maxMinutes = mins;
           }
         }
-        setStats({ hadir, totalMinutes });
+        setStats({ hadir, totalMinutes, maxMinutes });
       })
       .catch(() => {
-        if (!cancelled) setStats({ hadir: 0, totalMinutes: 0 });
+        if (!cancelled) setStats({ hadir: 0, totalMinutes: 0, maxMinutes: 0 });
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
   const avgMinutes = stats && stats.hadir > 0 ? Math.round(stats.totalMinutes / stats.hadir) : 0;
@@ -73,66 +76,62 @@ export const RekapView: React.FC<RekapViewProps> = () => {
   const monthTitle = `${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`;
 
   return (
-    <div className="relative -mx-5 -mt-6">
-      {/* ═══ HERO navy ═══ */}
+    <div className="relative -mx-5 min-h-full flex flex-col bg-white">
+      {/* ═══ HERO NAVY — pola header identik Izin ═══ */}
       <div className="rise-in relative bg-navy px-5 pt-6 pb-16 shrink-0 overflow-hidden">
-        <div className="absolute inset-0 bg-navy/90" />
-        <div className="absolute -top-20 -right-16 w-64 h-64 rounded-full bg-white/5 blur-2xl pointer-events-none" />
-        <div className="absolute top-28 -left-24 w-56 h-56 rounded-full bg-white/5 blur-2xl pointer-events-none" />
+        <div className="absolute inset-0 overflow-hidden">
+          <TopoPattern />
+        </div>
 
         <div className="relative">
-          <p className="text-white/60 text-[10px] font-semibold uppercase tracking-[0.14em]">
-            {now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-          </p>
-          <h1 className="text-white text-[26px] font-extrabold tracking-tight leading-tight mt-2">
-            Rekap Kehadiran
-          </h1>
-          <div className="flex items-center gap-2 mt-3">
-            <span className="px-3 py-1.5 rounded-full bg-white/10 border border-white/15 text-[10px] font-bold text-white flex items-center gap-1.5">
-              <Calendar className="w-3 h-3" />
-              {monthTitle}
-            </span>
+          {/* judul + angka besar */}
+          <div className="flex items-end justify-between">
+            <div>
+              <p className="text-white/60 text-[10px] font-semibold flex items-center gap-1.5">
+                <CalendarDays className="w-3 h-3" /> Rekap magang · {monthTitle}
+              </p>
+              <h1 className="text-white text-3xl font-extrabold tracking-tight mt-1">Kehadiran</h1>
+            </div>
+            <div className="text-right">
+              <p className="text-white text-3xl font-extrabold tabular-nums leading-none">
+                {loading ? '–' : stats?.hadir ?? 0}
+              </p>
+              <p className="text-white/60 text-[10px] font-bold mt-1">hari hadir</p>
+            </div>
+          </div>
+
+          {/* 3 chip kaca statistik — pola chip Izin */}
+          <div className="grid grid-cols-3 gap-2 mt-5">
+            <div className="rounded-[14px] border bg-white/10 border-white/15 text-white p-2.5 flex flex-col items-center gap-1">
+              <Clock className="w-4 h-4" />
+              <span className="text-sm font-extrabold tabular-nums leading-none">
+                {loading ? '–' : fmtDuration(stats?.totalMinutes ?? 0)}
+              </span>
+              <span className="text-[8px] font-bold uppercase tracking-wide text-white/60">Total Jam</span>
+            </div>
+
+            <div className="rounded-[14px] border bg-white/10 border-white/15 text-white p-2.5 flex flex-col items-center gap-1">
+              <TrendingUp className="w-4 h-4" />
+              <span className="text-sm font-extrabold tabular-nums leading-none">
+                {loading ? '–' : fmtAvg(avgMinutes)}
+              </span>
+              <span className="text-[8px] font-bold uppercase tracking-wide text-white/60">Rata-rata</span>
+            </div>
+
+            <div className="rounded-[14px] border bg-white/10 border-white/15 text-white p-2.5 flex flex-col items-center gap-1">
+              <Timer className="w-4 h-4" />
+              <span className="text-sm font-extrabold tabular-nums leading-none">
+                {loading ? '–' : fmtDuration(stats?.maxMinutes ?? 0)}
+              </span>
+              <span className="text-[8px] font-bold uppercase tracking-wide text-white/60">Terlama</span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ═══ WHITE SHEET ═══ */}
-      <div className="relative -mt-8 bg-white rounded-t-[32px] px-5 pt-6 pb-32 shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
-        {/* ringkasan bulan ini */}
-        <p className="text-[10px] font-bold text-navy/50 uppercase tracking-wide">Ringkasan Bulan Ini</p>
-
-        <div className="rise-in mt-3 bg-white rounded-[20px] border border-mist/60 shadow-sm grid grid-cols-3 divide-x divide-mist/60" style={{ animationDelay: '100ms' }}>
-          <div className="py-4 flex flex-col items-center gap-1.5">
-            <span className="w-7 h-7 rounded-full bg-navy/5 text-navy/60 flex items-center justify-center">
-              <CalendarDays className="w-3.5 h-3.5" />
-            </span>
-            <p className="text-[17px] font-extrabold text-navy tabular-nums leading-none">
-              {loading ? '–' : stats?.hadir ?? 0}
-            </p>
-            <p className="text-[8px] font-extrabold text-navy/45 uppercase tracking-wide">Hari Hadir</p>
-          </div>
-          <div className="py-4 flex flex-col items-center gap-1.5">
-            <span className="w-7 h-7 rounded-full bg-navy/5 text-navy/60 flex items-center justify-center">
-              <Clock className="w-3.5 h-3.5" />
-            </span>
-            <p className="text-[17px] font-extrabold text-navy tabular-nums leading-none">
-              {loading ? '–' : fmtDuration(stats?.totalMinutes ?? 0)}
-            </p>
-            <p className="text-[8px] font-extrabold text-navy/45 uppercase tracking-wide">Total Jam</p>
-          </div>
-          <div className="py-4 flex flex-col items-center gap-1.5">
-            <span className="w-7 h-7 rounded-full bg-navy/5 text-navy/60 flex items-center justify-center">
-              <TrendingUp className="w-3.5 h-3.5" />
-            </span>
-            <p className="text-[17px] font-extrabold text-navy tabular-nums leading-none">
-              {loading ? '–' : fmtAvg(avgMinutes)}
-            </p>
-            <p className="text-[8px] font-extrabold text-navy/45 uppercase tracking-wide">Rata-rata</p>
-          </div>
-        </div>
-
-        {/* tabel rekap */}
-        <div className="rise-in mt-6" style={{ animationDelay: '200ms' }}>
+      {/* ═══ WHITE SHEET overlap — langsung tabel ═══ */}
+      <div className="relative -mt-8 flex-1 bg-white rounded-t-[32px] px-5 pt-6 pb-24 shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
+        <div className="rise-in" style={{ animationDelay: '100ms' }}>
           <RekapanHarian />
         </div>
       </div>

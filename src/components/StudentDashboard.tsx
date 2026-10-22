@@ -248,16 +248,22 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
               />
             </div>
           </>
+        ) : tab === 'profil' ? (
+          /* wrapper khusus profil: tanpa pt/pb + anti-overscroll */
+          <div className="flex-1 overflow-y-auto px-5 [overscroll-behavior:none]">
+            <ProfileView user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} />
+          </div>
+        ) : tab === 'rekap' ? (
+          /* wrapper khusus rekap: tanpa pt/pb + anti-overscroll */
+          <div className="flex-1 overflow-y-auto px-5 [overscroll-behavior:none]">
+            <RekapView user={user} />
+          </div>
         ) : (
           <div className="flex-1 overflow-y-auto px-5 pt-6 pb-32">
-            {tab === 'rekap' ? (
-              <RekapView user={user} />
-            ) : tab === 'logbook' ? (
+            {tab === 'logbook' ? (
               <LogbookView />
             ) : tab === 'izin' ? (
               <IzinView />
-            ) : tab === 'profil' ? (
-              <ProfileView user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} />
             ) : (
               <PlaceholderView tab={tab} />
             )}
@@ -302,7 +308,7 @@ const NotifPop: React.FC<{ closing: boolean }> = ({ closing }) => (
 );
 
 /* ══════════════════════════════════════════════════════
-   HOME VIEW — tiket absensi + ringkasan (Rekap pindah ke tab sendiri)
+   HOME VIEW — tiket absensi + ringkasan
    ══════════════════════════════════════════════════════ */
 interface HomeViewProps {
   user: any;
