@@ -3,8 +3,10 @@ import { LoginScreen } from './components/LoginScreen.tsx';
 import { StudentDashboard } from './components/StudentDashboard.tsx';
 import { readUser, clearAuth, saveUser, getToken, isRememberToken } from './utils/auth.ts';
 import { authService } from './services/auth.ts';
+import { SplashScreen } from './components/SplashScreen.tsx';
 
 export default function App() {
+  const [showSplash, setShowSplash] = useState(true);
   /* State awal: user hanya dianggap login kalau tokennya ikut ada.
      Mencegah dashboard sempat render (dan menembak request 401) sebelum
      efek verifikasi di bawah sempat berjalan. */
@@ -55,6 +57,10 @@ export default function App() {
   const handleSuccess = (u: any) => {
     setUser(u);
   };
+
+  if (showSplash) {
+    return <SplashScreen onDone={() => setShowSplash(false)} />;
+  }
 
   if (!user) {
     return <LoginScreen onSuccess={handleSuccess} />;
