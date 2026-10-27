@@ -5,12 +5,16 @@ import {
 import { authService } from '../services/auth';
 import { clearAuth } from '../utils/auth';
 import { Logo } from './Logo';
+import { TopoPattern, WAVE_TOP_FILL } from './Decor';
 
 interface LoginScreenProps {
   onSuccess: (user: any) => void;
+  /** false = masih di balik splash: header ditahan dulu, lalu muncul halus
+      tepat saat panel splash selesai menyusut. */
+  intro?: boolean;
 }
 
-export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
+export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess, intro = true }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -43,29 +47,14 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
     <div className="relative min-h-screen bg-white overflow-hidden">
       <div className="absolute inset-x-0 top-0 z-0 bg-navy h-[30%]">
         <div className="absolute inset-0 overflow-hidden">
-          <svg
-            className="absolute inset-0 h-full w-full opacity-[0.12]"
-            viewBox="0 0 400 500"
-            preserveAspectRatio="xMidYMid slice"
-            fill="none"
-          >
-            <g stroke="#FFFFFF" strokeWidth="1.2">
-              <path d="M70 90c40-35 110-30 145 10s25 105-25 125-120 5-145-40 5-60 25-95Z" />
-              <path d="M85 105c32-27 88-23 116 9s20 84-20 100-96 4-116-32 4-49 20-77Z" />
-              <path d="M100 120c24-20 66-17 87 7s15 63-15 75-72 3-87-24 3-37 15-58Z" />
-              <path d="M300 300c35-30 95-25 125 8s20 90-22 107-103 4-124-34 6-51 21-81Z" />
-              <path d="M315 315c27-23 74-19 97 7s16 70-17 83-80 3-96-27 5-40 16-63Z" />
-              <path d="M40 330c25-22 70-18 92 6s15 66-16 78-76 3-91-25 5-37 15-59Z" />
-              <path d="M250 60c20-18 55-15 73 5s12 52-13 62-60 2-72-20 4-29 12-47Z" />
-            </g>
-          </svg>
+          <TopoPattern />
         </div>
         <svg className="block absolute left-0 w-full h-[90px] top-[calc(100%-8px)]" viewBox="0 0 1440 190" preserveAspectRatio="none">
-          <path d="M0,96 C240,40 480,40 720,96 C960,150 1200,150 1440,96 L1440,0 L0,0 Z" fill="var(--theme-navy)" />
+          <path d={WAVE_TOP_FILL} fill="var(--theme-navy)" />
         </svg>
       </div>
 
-      <div className="absolute inset-x-0 top-0 z-20 h-[92px] pointer-events-none header-in">
+      <div className={`absolute inset-x-0 top-0 z-20 h-[92px] pointer-events-none ${intro ? 'header-in' : 'opacity-0'}`}>
         <div className="absolute top-6 right-6">
           <Logo className="w-11 h-11 drop-shadow-md" />
         </div>

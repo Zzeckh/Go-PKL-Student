@@ -178,19 +178,23 @@ input[type='date']::-webkit-calendar-picker-indicator {
 .greet-swap { animation: greet-swap 280ms ease-out both; }
 
 /* ─── SPLASH ─── */
-@keyframes logo-pop {
-  0%   { opacity: 0; transform: scale(0.6); }
-  100% { opacity: 1; transform: scale(1); }
+@keyframes splash-glow-drift {
+  0%, 100% { transform: translate3d(0, 0, 0); opacity: .42; }
+  50% { transform: translate3d(0, 12px, 0); opacity: .62; }
 }
+.splash-glow { position: absolute; width: 24rem; height: 14rem; border-radius: 999px; filter: blur(72px); animation: splash-glow-drift 8s ease-in-out infinite; }
+.splash-glow-one { top: 18%; left: 50%; transform: translateX(-50%); background: rgba(64, 160, 202, .13); }
 @keyframes logo-float {
   from { transform: translateY(0); }
   to   { transform: translateY(-8px); }
 }
+/* Logo langsung tampil (tanpa pop) supaya menyambung mulus dengan splash
+   native Android yang juga menampilkan logo di tengah layar. */
 .splash-logo {
-  animation:
-    logo-pop 900ms cubic-bezier(0.34, 1.3, 0.64, 1) both,
-    logo-float 2.4s ease-in-out 1000ms infinite alternate;
+  animation: logo-float 2.4s ease-in-out 900ms infinite alternate;
 }
+.splash-mark-shadow { background: rgba(96, 192, 225, .16); filter: blur(22px); animation: mark-breathe 4s ease-in-out infinite; }
+@keyframes mark-breathe { 0%, 100% { transform: scale(.96); opacity: .55; } 50% { transform: scale(1.04); opacity: .8; } }
 
 @keyframes text-up {
   from { opacity: 0; transform: translateY(18px); }
@@ -203,6 +207,16 @@ input[type='date']::-webkit-calendar-picker-indicator {
   to   { opacity: 1; transform: scaleX(1); }
 }
 .splash-divider { animation: divider-grow 500ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* halo lembut yang mengembang di belakang logo splash */
+@keyframes splash-halo {
+  0%   { opacity: 0;    transform: scale(0.72); }
+  30%  { opacity: 0.55; }
+  100% { opacity: 0;    transform: scale(1.55); }
+}
+.splash-halo { animation: splash-halo 2.8s cubic-bezier(0.22, 1, 0.36, 1) 350ms infinite; }
+.splash-progress span { display: block; height: 100%; width: 38%; background: rgba(164, 225, 245, .8); animation: progress-sweep 2.2s ease-in-out infinite; }
+@keyframes progress-sweep { 0% { transform: translateX(-120%); } 55%, 100% { transform: translateX(280%); } }
 
 /* ─── Bottom nav slide-up saat dashboard muncul ─── */
 @keyframes nav-up {
