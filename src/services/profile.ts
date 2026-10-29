@@ -4,6 +4,14 @@ import type { User } from './auth';
 export interface UpdateProfilePayload {
   email?: string;
   whatsapp?: string;
+  gender?: string | null;
+  birthPlace?: string | null;
+  birthDate?: string | null;
+  concentration?: string | null;
+  address?: string | null;
+  parentName?: string | null;
+  parentAddress?: string | null;
+  parentPhone?: string | null;
 }
 
 export interface ChangePasswordPayload {

@@ -183,7 +183,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
     <div className="relative min-h-screen bg-white flex flex-col">
       <FluidSweep />
 
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 min-h-0 flex flex-col">
         {tab === 'home' ? (
           <>
             {/* ═══ HERO navy ═══ */}
@@ -250,7 +250,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
           </>
         ) : tab === 'profil' ? (
           /* wrapper khusus profil: tanpa pt/pb + anti-overscroll */
-          <div className="flex-1 overflow-y-auto px-5 [overscroll-behavior:none]">
+          <div className="flex-1 min-h-0 overflow-y-auto px-5 touch-pan-y [overscroll-behavior:auto]">
             <ProfileView user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} />
           </div>
         ) : tab === 'rekap' ? (
