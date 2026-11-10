@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  BookOpen, Clock, CheckCircle2, Loader2, Plus, Pencil, X, CalendarDays, FileText, ChevronDown, AlertCircle, RefreshCw,
+  BookOpen, Clock, CheckCircle2, Loader2, Plus, Pencil, X, CalendarDays, FileText, ChevronDown,
+  AlertCircle, RefreshCw, GraduationCap, Target,
 } from 'lucide-react';
 import { logbookService, type Logbook } from '../services/logbook';
 import { LOGBOOK_STATUS_MAP, statusView } from '../utils/statusMap';
 import { toISODate } from '../utils/date';
+import { AchievementsPanel, GoalsPanel } from './Learning';
 
 type Filter = 'semua' | 'pending' | 'approved' | 'rejected';
 const FILTERS: { id: Filter; label: string }[] = [
@@ -12,6 +14,14 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: 'approved', label: 'Disetujui' },
   { id: 'pending',  label: 'Pending' },
   { id: 'rejected', label: 'Revisi' },
+];
+
+/* Bagian di dalam tab Logbook: jurnal harian + capaian & tujuan (read-only) */
+type Section = 'jurnal' | 'capaian' | 'tujuan';
+const SECTIONS: { id: Section; label: string; icon: React.ElementType }[] = [
+  { id: 'jurnal',  label: 'Jurnal',  icon: BookOpen },
+  { id: 'capaian', label: 'Capaian', icon: GraduationCap },
+  { id: 'tujuan',  label: 'Tujuan',  icon: Target },
 ];
 
 const PAGE_SIZE = 3;
@@ -39,7 +49,8 @@ const StatTile: React.FC<{ icon: React.ElementType; value: string | number; labe
   </div>
 );
 
-export const LogbookView: React.FC = () => {
+export const LogbookView: React.FC<{ user?: any }> = ({ user }) => {
+  const [section, setSection] = useState<Section>('jurnal');
   const [entries, setEntries] = useState<Logbook[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -155,6 +166,30 @@ export const LogbookView: React.FC = () => {
         <h1 className="text-2xl font-extrabold text-navy tracking-tight mt-1">Logbook</h1>
       </div>
 
+      {/* ═══ SECTION: Jurnal / Capaian / Tujuan ═══ */}
+      <div
+        className="rise-in mt-4 grid grid-cols-3 gap-1.5 rounded-full bg-white border border-mist/60 p-1.5 shadow-sm"
+        style={{ animationDelay: '80ms' }}
+      >
+        {SECTIONS.map(s => {
+          const active = section === s.id;
+          return (
+            <button
+              key={s.id}
+              onClick={() => setSection(s.id)}
+              className={`h-9 rounded-full flex items-center justify-center gap-1.5 text-[10px] font-extrabold transition-all active:scale-95 ${
+                active ? 'bg-navy text-white shadow-md shadow-navy/20' : 'text-navy/50'
+              }`}
+            >
+              <s.icon className="w-3.5 h-3.5" />
+              {s.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {section === 'jurnal' ? (
+      <>
       {/* ═══ ERROR MUAT DATA ═══ */}
       {loadError && (
         <div className="rise-in bg-white rounded-[20px] border border-red-200 shadow-sm p-4 mt-5 flex items-center justify-between gap-3">
@@ -261,16 +296,28 @@ export const LogbookView: React.FC = () => {
           </button>
         )}
       </div>
+      </>
+      ) : section === 'capaian' ? (
+        <div className="mt-4">
+          <AchievementsPanel studentId={user?.id} />
+        </div>
+      ) : (
+        <div className="mt-4">
+          <GoalsPanel studentId={user?.id} />
+        </div>
+      )}
 
-      {/* ═══ FAB ═══ */}
-      <button
-        onClick={openAdd}
-        aria-label="Tambah logbook"
-        className="rise-in fixed right-5 bottom-24 z-40 w-14 h-14 rounded-full bg-navy text-white shadow-lg shadow-navy/30 flex items-center justify-center active:scale-90 transition-all"
-        style={{ animationDelay: '400ms' }}
-      >
-        <Plus className="w-6 h-6" />
-      </button>
+      {/* ═══ FAB (hanya di Jurnal) ═══ */}
+      {section === 'jurnal' && (
+        <button
+          onClick={openAdd}
+          aria-label="Tambah logbook"
+          className="rise-in fixed right-5 bottom-24 z-40 w-14 h-14 rounded-full bg-navy text-white shadow-lg shadow-navy/30 flex items-center justify-center active:scale-90 transition-all"
+          style={{ animationDelay: '400ms' }}
+        >
+          <Plus className="w-6 h-6" />
+        </button>
+      )}
 
       {/* ═══ BOTTOM-SHEET FORM ═══ */}
       {sheet && (

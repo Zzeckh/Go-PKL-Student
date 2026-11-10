@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Bell, X, BookOpen, FileCheck, MapPin, AlertCircle, RefreshCw,
-  LogIn, LogOut, Loader2, CheckCircle2, CalendarDays,
+  CheckCircle2, CalendarDays, ChevronRight,
 } from 'lucide-react';
 import { BottomNav, TABS, type TabId } from './BottomNav';
 import { TopoPattern, WAVE_TOP_FILL, WAVE_BOTTOM_FILL } from './Decor';
@@ -9,11 +9,10 @@ import { RekapView } from './Rekap';
 import { LogbookView } from './Logbook';
 import { IzinView } from './Izin';
 import { ProfileView } from './Profile';
-import { SelfieCamera } from './SelfieCamera';
-import { useTodayAttendance } from '../hooks/useTodayAttendance';
+import { AbsensiView } from './Absensi';
+import { useTodayAttendance, type TodayAttendance } from '../hooks/useTodayAttendance';
 import { dashboardService, type DashboardStats } from '../services/dashboard';
 import { fmtTimeID } from '../utils/date';
-import { distanceM } from '../utils/geo';
 
 interface StudentDashboardProps {
   user: any;
@@ -126,6 +125,10 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
   const [tab, setTab] = useState<TabId>('home');
   const [pending, setPending] = useState<TabId | null>(null);
   const [cover, setCover] = useState(false);
+  /* Halaman absensi dibuka eksplisit lewat tombol "Absen" — bukan otomatis. */
+  const [absenOpen, setAbsenOpen] = useState(false);
+  /* Satu sumber state absensi untuk kartu ringkasan Home & halaman Absensi. */
+  const attendance = useTodayAttendance();
 
   const [hasUnread, setHasUnread] = useState(true);
   const [showNotif, setShowNotif] = useState(false);
@@ -240,11 +243,12 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
             {/* ═══ WHITE SHEET ═══ */}
             <div className="relative -mt-8 flex-1 bg-white rounded-t-[32px] px-5 pt-6 pb-32 shadow-[0_-8px_30px_rgba(0,0,0,0.08)]">
               <HomeView
-                user={user}
                 stats={stats}
                 loading={statsLoading}
                 error={statsError}
                 onRetry={loadStats}
+                attendance={attendance}
+                onOpenAbsen={() => setAbsenOpen(true)}
               />
             </div>
           </>
@@ -261,7 +265,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
         ) : (
           <div className="flex-1 overflow-y-auto px-5 pt-6 pb-32">
             {tab === 'logbook' ? (
-              <LogbookView />
+              <LogbookView user={user} />
             ) : tab === 'izin' ? (
               <IzinView />
             ) : (
@@ -276,6 +280,15 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
       <BottomNav className="nav-in" active={pending ?? tab} onChange={handleTabChange} />
 
       {showNotif && <NotifPop closing={closing} />}
+
+      {/* Halaman absensi — dibuka hanya lewat tombol Absen di dashboard */}
+      {absenOpen && (
+        <AbsensiView
+          user={user}
+          attendance={attendance}
+          onClose={() => setAbsenOpen(false)}
+        />
+      )}
     </div>
   );
 };
@@ -311,18 +324,16 @@ const NotifPop: React.FC<{ closing: boolean }> = ({ closing }) => (
    HOME VIEW — tiket absensi + ringkasan
    ══════════════════════════════════════════════════════ */
 interface HomeViewProps {
-  user: any;
   stats: DashboardStats | null;
   loading: boolean;
   error: string | null;
   onRetry: () => void;
+  attendance: TodayAttendance;
+  onOpenAbsen: () => void;
 }
 
-const HomeView: React.FC<HomeViewProps> = ({ user, stats, error, onRetry }) => {
-  const attendance = useTodayAttendance();
-  const { today, acting, error: attError, gps, checkIn, checkOut } = attendance;
-
-  const [selfie, setSelfie] = useState<string | null>(null);
+const HomeView: React.FC<HomeViewProps> = ({ stats, error, onRetry, attendance, onOpenAbsen }) => {
+  const { today, error: attError } = attendance;
 
   const [now, setNow] = useState(() => Date.now());
   const hasIn = !!today?.checkInTime;
@@ -333,37 +344,11 @@ const HomeView: React.FC<HomeViewProps> = ({ user, stats, error, onRetry }) => {
     return () => clearInterval(t);
   }, [hasIn, hasOut]);
 
-  const fence = user?.companyLocation || null;
-  const hasFence = !!(fence && fence.lat != null && fence.lng != null);
-  const dist = gps.status === 'ok' && hasFence ? distanceM({ lat: gps.lat, lng: gps.lng }, fence) : null;
-  const inFence = !hasFence || (dist !== null && dist <= (fence?.radius ?? 500));
-  const reqSelfie = !!selfie;
-  const reqLokasi = gps.status === 'ok' && inFence;
-  const allReq = reqSelfie && reqLokasi;
-  const needsVerify = !hasIn || !hasOut;
-
-  const gpsText =
-    gps.status === 'loading' ? 'Mendeteksi lokasi GPS...' :
-    gps.status === 'error' ? 'GPS bermasalah — cek izin lokasi' :
-    hasFence ? (inFence ? 'Kamu di area tempat magang' : 'Kamu di luar radius magang') :
-    'Lokasi GPS terdeteksi';
-
   const durText = hasIn && hasOut && today?.checkInTime && today.checkOutTime
     ? fmtDur(new Date(today.checkOutTime).getTime() - new Date(today.checkInTime).getTime())
     : hasIn && today?.checkInTime
       ? fmtDur(now - new Date(today.checkInTime).getTime())
       : '–';
-
-  const doCheckIn = async () => {
-    if (!allReq) return;
-    const ok = await checkIn();
-    if (ok) { setSelfie(null); onRetry(); }
-  };
-  const doCheckOut = async () => {
-    if (!allReq) return;
-    const ok = await checkOut();
-    if (ok) { setSelfie(null); onRetry(); }
-  };
 
   return (
     <>
@@ -402,12 +387,6 @@ const HomeView: React.FC<HomeViewProps> = ({ user, stats, error, onRetry }) => {
             </div>
           )}
 
-          {needsVerify && (
-            <div className="mt-4">
-              <SelfieCamera selfie={selfie} onSelfie={setSelfie} compact />
-            </div>
-          )}
-
           <div className="grid grid-cols-[1fr_auto_1fr] items-end mt-5">
             <div>
               <p className="text-[8px] font-extrabold uppercase tracking-[0.14em] text-navy/40">Masuk</p>
@@ -436,18 +415,12 @@ const HomeView: React.FC<HomeViewProps> = ({ user, stats, error, onRetry }) => {
 
           {!hasOut ? (
             <button
-              onClick={hasIn ? doCheckOut : doCheckIn}
-              disabled={!allReq || acting !== null || attendance.loading}
-              className="mt-5 w-full bg-navy text-white rounded-[14px] py-3.5 flex items-center justify-center gap-2 shadow-md shadow-navy/25 active:scale-[0.98] transition-all disabled:opacity-40 disabled:shadow-none"
+              onClick={onOpenAbsen}
+              className="mt-5 w-full bg-navy text-white rounded-[14px] py-3.5 flex items-center justify-center gap-2 shadow-md shadow-navy/25 active:scale-[0.98] transition-all"
             >
-              {acting !== null
-                ? <Loader2 className="w-4 h-4 animate-spin" />
-                : hasIn ? <LogOut className="w-4 h-4" /> : <LogIn className="w-4 h-4" />}
-              <span className="text-[12px] font-extrabold">
-                {acting === 'in' ? 'Mengirim absen masuk...' :
-                 acting === 'out' ? 'Mengirim absen pulang...' :
-                 hasIn ? 'Absen Pulang' : 'Absen Masuk'}
-              </span>
+              <MapPin className="w-4 h-4" />
+              <span className="text-[12px] font-extrabold">Absen</span>
+              <ChevronRight className="w-4 h-4 opacity-70" />
             </button>
           ) : (
             <div className="mt-5 flex items-center justify-center gap-2 rounded-[14px] bg-navy/5 border border-navy/15 px-3 py-3.5">
@@ -456,24 +429,10 @@ const HomeView: React.FC<HomeViewProps> = ({ user, stats, error, onRetry }) => {
             </div>
           )}
 
-          {needsVerify && (
-            <div className="mt-4 pt-3.5 border-t border-dashed border-mist flex items-center gap-2">
-              <span className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
-                reqLokasi ? 'bg-navy/10 text-navy' : 'bg-shell text-navy/40'
-              }`}>
-                {gps.status === 'loading' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MapPin className="w-3.5 h-3.5" />}
-              </span>
-              <p className={`flex-1 text-[10px] font-semibold truncate ${reqLokasi ? 'text-navy/70' : 'text-navy/40'}`}>
-                {gpsText}
-              </p>
-              {dist !== null && hasFence && (
-                <span className={`px-2 py-1 rounded-full text-[9px] font-extrabold tabular-nums shrink-0 ${
-                  inFence ? 'bg-navy/5 text-navy' : 'bg-red-50 text-red-500'
-                }`}>
-                  {dist} m
-                </span>
-              )}
-            </div>
+          {!hasOut && (
+            <p className="mt-2.5 text-center text-[9px] font-semibold text-navy/40">
+              Tombol Absen hanya membuka halaman verifikasi — absensi tidak tercatat otomatis.
+            </p>
           )}
         </div>
       </div>

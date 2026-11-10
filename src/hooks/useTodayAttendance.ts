@@ -52,10 +52,16 @@ export interface TodayAttendance {
 
 /**
  * State + aksi absensi HARI INI, dibagikan antara:
- * - Card "Absensi Hari Ini" di HomeView (StudentDashboard)
- * - AbsensiView (tab absensi)
+ * - Card ringkasan "Absensi Hari Ini" di HomeView (StudentDashboard)
+ * - Halaman AbsensiView (dibuka lewat tombol Absen)
+ *
+ * GPS sengaja TIDAK otomatis diminta saat hook dipasang. Membuka aplikasi
+ * tidak boleh terkesan memulai absensi; halaman Absensi-lah yang memanggil
+ * `refreshGps()` saat benar-benar dibuka pengguna.
  */
-export const useTodayAttendance = (): TodayAttendance => {
+export const useTodayAttendance = (options: { autoGps?: boolean } = {}): TodayAttendance => {
+  const { autoGps = false } = options;
+
   const [today, setToday] = useState<Absensi | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,8 +82,8 @@ export const useTodayAttendance = (): TodayAttendance => {
   }, []);
 
   useEffect(() => {
-    refreshGps();
-  }, [refreshGps]);
+    if (autoGps) refreshGps();
+  }, [autoGps, refreshGps]);
 
   const reload = useCallback(async () => {
     setLoading(true);
