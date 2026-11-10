@@ -11,7 +11,7 @@ import { IzinView } from './Izin';
 import { ProfileView } from './Profile';
 import { AbsensiView } from './Absensi';
 import { useTodayAttendance, type TodayAttendance } from '../hooks/useTodayAttendance';
-import { dashboardService, type DashboardStats } from '../services/dashboard';
+import { dashboardService, type DashboardStats, type DashboardNotification } from '../services/dashboard';
 import { fmtTimeID } from '../utils/date';
 
 interface StudentDashboardProps {
@@ -19,24 +19,6 @@ interface StudentDashboardProps {
   onLogout: () => void;
   onUserUpdate?: (u: any) => void;
 }
-
-type Notif = {
-  id: number;
-  type: 'logbook' | 'izin';
-  tone: 'ok' | 'warn';
-  title: string;
-  sub: string;
-  time: string;
-};
-
-const NOTIFS: Notif[] = [
-  { id: 1, type: 'logbook', tone: 'ok',   title: 'Jurnal disetujui', sub: 'Entri 16/02.',      time: '2 jam' },
-  { id: 2, type: 'izin',    tone: 'ok',   title: 'Izin diterima',     sub: 'Sakit · 14/02.',    time: '1 hari' },
-  { id: 3, type: 'logbook', tone: 'warn', title: 'Jurnal revisi',    sub: 'Entri 13/02.',      time: '2 hari' },
-  { id: 4, type: 'izin',    tone: 'ok',   title: 'Izin diterima',     sub: 'Keluarga · 10/02.', time: '4 hari' },
-  { id: 5, type: 'logbook', tone: 'ok',   title: 'Jurnal disetujui', sub: 'Entri 09/02.',      time: '1 mgg' },
-];
-const SHOWN_NOTIFS = NOTIFS.slice(0, 4);
 
 const SWEEP_TOTAL = 1400;
 const SWITCH_AT = 700;
@@ -130,13 +112,14 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
   /* Satu sumber state absensi untuk kartu ringkasan Home & halaman Absensi. */
   const attendance = useTodayAttendance();
 
-  const [hasUnread, setHasUnread] = useState(true);
+  const [hasUnread, setHasUnread] = useState(false);
   const [showNotif, setShowNotif] = useState(false);
   const [closing, setClosing] = useState(false);
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsError, setStatsError] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<DashboardNotification[]>([]);
 
   const loadStats = useCallback(async () => {
     setStatsLoading(true);
@@ -156,6 +139,16 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
       loadStats();
     }
   }, [tab, loadStats]);
+
+  useEffect(() => {
+    if (tab !== 'home') return;
+    dashboardService.getNotifications()
+      .then((items) => {
+        setNotifications(items);
+        setHasUnread(items.length > 0);
+      })
+      .catch(() => setNotifications([]));
+  }, [tab]);
 
   const fullName = user?.name || 'Siswa';
   const firstName = fullName.split(' ')[0];
@@ -279,7 +272,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
 
       <BottomNav className="nav-in" active={pending ?? tab} onChange={handleTabChange} />
 
-      {showNotif && <NotifPop closing={closing} />}
+      {showNotif && <NotifPop closing={closing} notifications={notifications} />}
 
       {/* Halaman absensi — dibuka hanya lewat tombol Absen di dashboard */}
       {absenOpen && (
@@ -293,16 +286,18 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user, onLogo
   );
 };
 
-const NotifPop: React.FC<{ closing: boolean }> = ({ closing }) => (
+const NotifPop: React.FC<{ closing: boolean; notifications: DashboardNotification[] }> = ({ closing, notifications }) => (
   <div className={`${closing ? 'pop-out' : 'pop-in'} absolute right-5 top-[68px] z-40 w-60 bg-white rounded-[16px] border border-mist/60 shadow-lg shadow-navy/15 p-2.5`}>
     <div className="flex items-center justify-between px-1">
       <p className="text-[11px] font-extrabold text-navy">Notifikasi</p>
       <span className="px-1.5 py-0.5 rounded-full bg-shell border border-mist/60 text-[8px] font-bold text-navy/60">
-        {SHOWN_NOTIFS.length} terbaru
+        {notifications.length} terbaru
       </span>
     </div>
     <div className="mt-1 flex flex-col">
-      {SHOWN_NOTIFS.map((n, i) => (
+      {notifications.length === 0 ? (
+        <p className="px-1 py-3 text-[10px] font-semibold text-navy/45">Belum ada notifikasi.</p>
+      ) : notifications.map((n, i) => (
         <div key={n.id} className={`flex items-center gap-2 px-1 py-2 ${i > 0 ? 'border-t border-mist/60' : ''}`}>
           <span className={`w-7 h-7 rounded-[9px] flex items-center justify-center shrink-0 ${
             n.tone === 'ok' ? 'bg-navy/10 text-navy' : 'bg-mist text-navy'
