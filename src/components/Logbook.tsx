@@ -16,7 +16,7 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: 'rejected', label: 'Revisi' },
 ];
 
-/* Bagian di dalam tab Logbook: jurnal harian + capaian & tujuan (read-only) */
+/* Bagian di dalam tab Jurnal: jurnal harian + capaian & tujuan (read-only) */
 type Section = 'jurnal' | 'capaian' | 'tujuan';
 const SECTIONS: { id: Section; label: string; icon: React.ElementType }[] = [
   { id: 'jurnal',  label: 'Jurnal',  icon: BookOpen },
@@ -71,7 +71,7 @@ export const LogbookView: React.FC<{ user?: any }> = ({ user }) => {
       const data = await logbookService.list();
       setEntries(data);
     } catch (err: any) {
-      setLoadError(err?.message || 'Gagal memuat logbook.');
+      setLoadError(err?.message || 'Gagal memuat jurnal.');
     } finally {
       setLoading(false);
     }
@@ -142,7 +142,7 @@ export const LogbookView: React.FC<{ user?: any }> = ({ user }) => {
       closeSheet();
       await load(); /* sinkron ulang dengan server (urutan & status terbaru) */
     } catch (err: any) {
-      setSaveError(err?.message || 'Gagal menyimpan logbook.');
+      setSaveError(err?.message || 'Gagal menyimpan jurnal.');
     } finally {
       setSaving(false);
     }
@@ -163,7 +163,7 @@ export const LogbookView: React.FC<{ user?: any }> = ({ user }) => {
         <p className="text-[10px] font-semibold text-navy/50 flex items-center gap-1.5">
           <CalendarDays className="w-3 h-3" /> Laporan kegiatan magang
         </p>
-        <h1 className="text-2xl font-extrabold text-navy tracking-tight mt-1">Logbook</h1>
+        <h1 className="text-2xl font-extrabold text-navy tracking-tight mt-1">Jurnal</h1>
       </div>
 
       {/* ═══ SECTION: Jurnal / Capaian / Tujuan ═══ */}
@@ -208,7 +208,7 @@ export const LogbookView: React.FC<{ user?: any }> = ({ user }) => {
 
       {/* ═══ 1) STATS ═══ */}
       <div className="rise-in grid grid-cols-2 gap-3 mt-5" style={{ animationDelay: '100ms' }}>
-        <StatTile icon={BookOpen}     value={loading ? '–' : total}                label="Total Logbook" />
+        <StatTile icon={BookOpen}     value={loading ? '–' : total}                label="Total Jurnal" />
         <StatTile icon={Clock}        value={loading ? '–' : fmtHours(totalHours)} label="Total Jam" />
         <StatTile icon={CheckCircle2} value={loading ? '–' : approved}             label="Disetujui" />
         <StatTile icon={Loader2}      value={loading ? '–' : pending}              label="Pending" />
@@ -236,14 +236,14 @@ export const LogbookView: React.FC<{ user?: any }> = ({ user }) => {
         {!loading && !loadError && visible.length === 0 && (
           <div className="rise-in bg-white rounded-[20px] border border-mist/60 p-8 text-center" style={{ animationDelay: '250ms' }}>
             <FileText className="w-6 h-6 text-navy/30 mx-auto" />
-            <p className="text-[11px] font-bold text-navy/40 mt-2">Belum ada logbook di filter ini.</p>
+            <p className="text-[11px] font-bold text-navy/40 mt-2">Belum ada jurnal di filter ini.</p>
           </div>
         )}
 
         {loading && (
           <div className="rise-in bg-white rounded-[20px] border border-mist/60 p-8 text-center" style={{ animationDelay: '250ms' }}>
             <Loader2 className="w-6 h-6 text-navy/30 mx-auto animate-spin" />
-            <p className="text-[11px] font-bold text-navy/40 mt-2">Memuat logbook...</p>
+            <p className="text-[11px] font-bold text-navy/40 mt-2">Memuat jurnal...</p>
           </div>
         )}
 
@@ -311,7 +311,7 @@ export const LogbookView: React.FC<{ user?: any }> = ({ user }) => {
       {section === 'jurnal' && (
         <button
           onClick={openAdd}
-          aria-label="Tambah logbook"
+          aria-label="Tambah jurnal"
           className="rise-in fixed right-5 bottom-24 z-40 w-14 h-14 rounded-full bg-navy text-white shadow-lg shadow-navy/30 flex items-center justify-center active:scale-90 transition-all"
           style={{ animationDelay: '400ms' }}
         >
@@ -332,7 +332,7 @@ export const LogbookView: React.FC<{ user?: any }> = ({ user }) => {
 
             <div className="flex items-center justify-between mt-4">
               <p className="text-sm font-extrabold text-navy">
-                {sheet.mode === 'add' ? 'Tambah Logbook' : 'Edit Logbook'}
+                {sheet.mode === 'add' ? 'Tambah Jurnal' : 'Edit Jurnal'}
               </p>
               <button onClick={closeSheet} aria-label="Tutup" className="w-8 h-8 rounded-full bg-shell border border-mist/60 text-navy/60 flex items-center justify-center active:scale-90 transition-all">
                 <X className="w-4 h-4" />
@@ -341,7 +341,7 @@ export const LogbookView: React.FC<{ user?: any }> = ({ user }) => {
 
             {sheet.mode === 'edit' && (
               <p className="mt-2 text-[10px] font-semibold text-navy/50 bg-shell border border-mist/60 rounded-[10px] px-2.5 py-1.5">
-                Setelah disimpan, logbook dikirim ulang sebagai <b>pending</b> untuk direview mentor.
+                Setelah disimpan, jurnal dikirim ulang sebagai <b>pending</b> untuk direview mentor.
               </p>
             )}
 
@@ -417,7 +417,7 @@ export const LogbookView: React.FC<{ user?: any }> = ({ user }) => {
               {saving ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> Menyimpan...</>
               ) : sheet.mode === 'add' ? (
-                <><Plus className="w-4 h-4" /> Kirim Logbook</>
+                <><Plus className="w-4 h-4" /> Kirim Jurnal</>
               ) : (
                 <><Pencil className="w-4 h-4" /> Simpan Perubahan</>
               )}

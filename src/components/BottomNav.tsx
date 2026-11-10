@@ -6,7 +6,7 @@ export type TabId = 'home' | 'rekap' | 'logbook' | 'izin' | 'profil';
 export const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'home',    label: 'Home',    icon: Home },
   { id: 'rekap',   label: 'Rekap',   icon: MapPin },
-  { id: 'logbook', label: 'Logbook', icon: BookOpen },
+  { id: 'logbook', label: 'Jurnal', icon: BookOpen },
   { id: 'izin',    label: 'Izin',    icon: FileCheck },
   { id: 'profil',  label: 'Profil',  icon: User },
 ];

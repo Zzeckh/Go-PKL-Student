@@ -13,7 +13,7 @@ interface LearningPanelProps {
 
 /* ══════════════════════════════════════════════════════
    CAPAIAN & TUJUAN PEMBELAJARAN — mode LIHAT SAJA (read-only).
-   Ditampilkan di dalam tab Logbook dengan kartu (bukan tabel)
+   Ditampilkan di dalam tab Jurnal dengan kartu (bukan tabel)
    agar nyaman dibaca di layar HP. Tidak ada aksi tambah / ubah /
    hapus di sini; pengelolaan tetap di aplikasi web.
    ══════════════════════════════════════════════════════ */
@@ -29,7 +29,7 @@ const IntroCard: React.FC<{
         <Icon className="w-5 h-5" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[9px] font-extrabold uppercase tracking-[0.14em] text-navy/40">Logbook PKL</p>
+        <p className="text-[9px] font-extrabold uppercase tracking-[0.14em] text-navy/40">Jurnal PKL</p>
         <h2 className="text-base font-extrabold text-navy leading-tight">{title}</h2>
       </div>
       <span className="px-2 py-1 rounded-full bg-shell border border-mist/60 text-[8px] font-extrabold text-navy/50 shrink-0">

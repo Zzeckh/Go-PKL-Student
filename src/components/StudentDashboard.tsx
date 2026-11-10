@@ -30,11 +30,11 @@ type Notif = {
 };
 
 const NOTIFS: Notif[] = [
-  { id: 1, type: 'logbook', tone: 'ok',   title: 'Logbook disetujui', sub: 'Entri 16/02.',      time: '2 jam' },
+  { id: 1, type: 'logbook', tone: 'ok',   title: 'Jurnal disetujui', sub: 'Entri 16/02.',      time: '2 jam' },
   { id: 2, type: 'izin',    tone: 'ok',   title: 'Izin diterima',     sub: 'Sakit · 14/02.',    time: '1 hari' },
-  { id: 3, type: 'logbook', tone: 'warn', title: 'Logbook revisi',    sub: 'Entri 13/02.',      time: '2 hari' },
+  { id: 3, type: 'logbook', tone: 'warn', title: 'Jurnal revisi',    sub: 'Entri 13/02.',      time: '2 hari' },
   { id: 4, type: 'izin',    tone: 'ok',   title: 'Izin diterima',     sub: 'Keluarga · 10/02.', time: '4 hari' },
-  { id: 5, type: 'logbook', tone: 'ok',   title: 'Logbook disetujui', sub: 'Entri 09/02.',      time: '1 mgg' },
+  { id: 5, type: 'logbook', tone: 'ok',   title: 'Jurnal disetujui', sub: 'Entri 09/02.',      time: '1 mgg' },
 ];
 const SHOWN_NOTIFS = NOTIFS.slice(0, 4);
 
@@ -444,7 +444,7 @@ const HomeView: React.FC<HomeViewProps> = ({ stats, error, onRetry, attendance, 
             <BookOpen className="w-3.5 h-3.5" />
           </span>
           <p className="text-[17px] font-extrabold text-navy tabular-nums leading-none">{stats ? stats.totalLogbook : '–'}</p>
-          <p className="text-[8px] font-extrabold text-navy/45 uppercase tracking-wide">Logbook</p>
+          <p className="text-[8px] font-extrabold text-navy/45 uppercase tracking-wide">Jurnal</p>
         </div>
         <div className="py-4 flex flex-col items-center gap-1.5">
           <span className="w-7 h-7 rounded-full bg-navy/5 text-navy/60 flex items-center justify-center">
